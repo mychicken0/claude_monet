@@ -4,7 +4,7 @@
 
 #rules
 Monet medieval RPG art direction: stylized low-poly geometry + painterly base materials + warm sun / cool sky lighting + light fog. No heavy fullscreen oil-paint filter. Shadows lean lavender/blue, highlights cream/warm yellow.
-Reusable kit: Monet* textures expose color params; tree species share MonetLeafCard and recolor via leaf_tint; buildings are #meshpart kits with params (MonetHouseKit, MonetTowerKit, MonetBridgeKit, MonetFieldWall, MonetFlowerClump).
+Reusable kit: Monet* textures are Codex-painted images (tint param); tree species share MonetLeafCard and recolor via leaf_tint; buildings are #meshpart kits with params (MonetHouseKit, MonetTowerKit, MonetBridgeKit, MonetFieldWall, MonetFlowerClump).
 #end
 
 // ============================================================
@@ -91,47 +91,80 @@ out.orm = orm(occlusion: 1.0, roughness: 0.9, metallic: 0.0);
 mapping = uv;
 wrap = clamp;
 render_mode = cutout;
-size = 256;
-let n = noise.fbm(uv * 5.0, octaves: 3, seed: 21, period: 0);
-let blob = fill(sdf.circle(uv + (vec2(n, n) - vec2(0.5, 0.5)) * 0.18, center: vec2(0.5, 0.52), radius: 0.4), aa: 0.02);
-let f = pattern.foliage(uv * 7.0, density: 1.0, size: 0.9, aspect: 0.5, bend: 0.15, angle: 0.0, angle_jitter: 180.0, layers: 3, seed: 8, period: 0);
-let r = rand(f.id);
-let lightv = sat(uv.y * 0.9 + (r - 0.5) * 0.5);
-out.color = ramp(lightv, [0.0: color("#3E5E6E"), 0.35: color("#4F7F68"), 0.65: color("#7E9A4E"), 1.0: color("#D8D08A")]);
-out.alpha = blob * f.mask;
-out.normal = normal_from_height(f.height * 0.03, strength: 0.3);
+size = 512;
+let t = image("projimg.monet_leaf_9212e2b2", uv, wrap: "clamp");
+out.color = t.rgb;
+out.alpha = t.a;
+out.normal = normal_from_height(dot(t.rgb, vec3(0.333, 0.333, 0.333)) * 0.03, strength: 0.3);
 out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
 #end
 
 // Colour variants: derive, don't duplicate texture code.
-// ---- Painted surfaces: Codex-generated Monet oil textures (oriverse/textures/*.png, uploaded as Ori.image assets) ----
-// One shared world-space triplanar shader. param0 = metres per repeat, param4..6 = RGB tint (0 = no tint).
-material MonetPlaster { shader = "MonetPaintedTriplanar" tex0 = "Ori.image.@ghohoh404040.plaster_wall" param0 = 3.0 }
-material MonetPlasterRose { shader = "MonetPaintedTriplanar" tex0 = "Ori.image.@ghohoh404040.plaster_wall" param0 = 3.0 param4 = 1.0 param5 = 0.88 param6 = 0.86 }
-material MonetPlasterOchre { shader = "MonetPaintedTriplanar" tex0 = "Ori.image.@ghohoh404040.plaster_wall" param0 = 3.0 param4 = 1.0 param5 = 0.95 param6 = 0.82 }
-material MonetStone { shader = "MonetPaintedTriplanar" tex0 = "Ori.image.@ghohoh404040.stone_wall" param0 = 2.5 }
-material MonetRoof { shader = "MonetPaintedTriplanar" tex0 = "Ori.image.@ghohoh404040.roof_tiles" param0 = 2.0 param4 = 0.92 param5 = 0.88 param6 = 0.9 }
-material MonetRoofDark { shader = "MonetPaintedTriplanar" tex0 = "Ori.image.@ghohoh404040.roof_tiles" param0 = 2.0 param4 = 0.8 param5 = 0.72 param6 = 0.8 }
-material MonetGrass { shader = "MonetPaintedTriplanar" tex0 = "Ori.image.@ghohoh404040.meadow_grass" param0 = 6.0 }
-material MonetPath { shader = "MonetPaintedTriplanar" tex0 = "Ori.image.@ghohoh404040.cobble_path" param0 = 3.0 }
-
-#shader MonetPaintedTriplanar
-let tile = select(3.0, mat.params4[0].x, mat.params4[0].x > 0.0);
-let tp = mat.params4[1].xyz;
-let tint = select(vec3<f32>(1.0), tp, (tp.x + tp.y + tp.z) > 0.0);
-let p = ctx.world_pos / tile;
-let an = abs(normalize(ctx.normal));
-var w = pow(an, vec3<f32>(4.0));
-w = w / (w.x + w.y + w.z);
-let cx = textureSample(tex0, tex_sampler, p.zy).rgb;
-let cy = textureSample(tex0, tex_sampler, p.xz).rgb;
-let cz = textureSample(tex0, tex_sampler, p.xy).rgb;
-let col = (cx * w.x + cy * w.y + cz * w.z) * tint * ctx.mesh_color.rgb;
-out.base_color = vec4<f32>(col, 1.0);
-out.orm.r = 1.0;
-out.orm.g = 0.92;
-out.orm.b = 0.0;
+// ---- Painted surfaces: Codex-generated Monet oil paintings (oriverse/textures/*.png, imported as project images) ----
+// Each is a world-space triplanar #texture; recolour with `tint` or a derived material.
+#texture MonetPlaster
+mapping = triplanar_world;
+tile_m = 3.0;
+size = 1024;
+param tint = color("#FFFFFF");
+param desat = 0.35 range 0.0..1.0;
+let c = image("projimg.monet_plaster_06d44a3d", uv, wrap: "repeat").rgb * tint;
+let l = dot(c, vec3(0.333, 0.333, 0.333));
+out.color = mix(c, vec3(l, l, l), desat);
+out.normal = normal_from_height(l * 0.04, strength: 0.5);
+out.orm = orm(occlusion: 1.0, roughness: 0.92, metallic: 0.0);
 #end
+#texture MonetStone
+mapping = triplanar_world;
+tile_m = 2.5;
+size = 512;
+param tint = color("#FFFFFF");
+param desat = 0.25 range 0.0..1.0;
+let c = image("projimg.monet_stone_ea6738d2", uv, wrap: "repeat").rgb * tint;
+let l = dot(c, vec3(0.333, 0.333, 0.333));
+out.color = mix(c, vec3(l, l, l), desat);
+out.normal = normal_from_height(l * 0.04, strength: 0.5);
+out.orm = orm(occlusion: 1.0, roughness: 0.92, metallic: 0.0);
+#end
+#texture MonetRoof
+mapping = triplanar_world;
+tile_m = 2.0;
+size = 512;
+param tint = color("#FFFFFF");
+param desat = 0.35 range 0.0..1.0;
+let c = image("projimg.monet_roof_77a4b275", uv, wrap: "repeat").rgb * tint;
+let l = dot(c, vec3(0.333, 0.333, 0.333));
+out.color = mix(c, vec3(l, l, l), desat);
+out.normal = normal_from_height(l * 0.04, strength: 0.5);
+out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
+#end
+#texture MonetGrass
+mapping = triplanar_world;
+tile_m = 6.0;
+size = 1024;
+param tint = color("#FFFFFF");
+param desat = 0.15 range 0.0..1.0;
+let c = image("projimg.monet_grass_e3180893", uv, wrap: "repeat").rgb * tint;
+let l = dot(c, vec3(0.333, 0.333, 0.333));
+out.color = mix(c, vec3(l, l, l), desat);
+out.normal = normal_from_height(l * 0.04, strength: 0.5);
+out.orm = orm(occlusion: 1.0, roughness: 0.95, metallic: 0.0);
+#end
+#texture MonetPath
+mapping = triplanar_world;
+tile_m = 3.0;
+size = 1024;
+param tint = color("#FFFFFF");
+param desat = 0.3 range 0.0..1.0;
+let c = image("projimg.monet_path_cdec643e", uv, wrap: "repeat").rgb * tint;
+let l = dot(c, vec3(0.333, 0.333, 0.333));
+out.color = mix(c, vec3(l, l, l), desat);
+out.normal = normal_from_height(l * 0.04, strength: 0.5);
+out.orm = orm(occlusion: 1.0, roughness: 0.9, metallic: 0.0);
+#end
+material MonetPlasterRose { base = "MonetPlaster" tint = "#FBE3DA" }
+material MonetPlasterOchre { base = "MonetPlaster" tint = "#F6EAD0" }
+material MonetRoofDark { base = "MonetRoof" tint = "#D2B4B4" }
 material MonetShutterBlue { base = "MonetWood" tint = "#B4BCD0" }
 
 // Screen pass: Kuwahara oil-paint abstraction (no time input -> no temporal swim),
@@ -208,7 +241,8 @@ material FlowerRed { base = "MonetPlasterProc" tint = "#FF6A5A" }
   leaf_clump_pct: 70
   leaf_detail_pct: 60
   leaf_normal_up_pct: 40
-  leaf_ao_pct: 50
+  leaf_ao_pct: 20
+  leaf_val_pct: 150
   crown_ellipsoid: 0, 0, 620, 380, 360, 300
   crown_ellipsoid: 220, 80, 560, 240, 220, 200
   crown_ellipsoid: -180, -120, 700, 240, 220, 200
@@ -236,7 +270,7 @@ material FlowerRed { base = "MonetPlasterProc" tint = "#FF6A5A" }
   leaf: MonetLeafCard
   bark: MonetBark
   leaf_tint: #6E9486
-  leaf_val_pct: 70
+  leaf_val_pct: 120
   leaf_clump_pct: 60
   leaf_detail_pct: 50
   crown_ellipsoid: 0, 0, 600, 85, 85, 520
