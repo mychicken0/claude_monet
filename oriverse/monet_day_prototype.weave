@@ -53,11 +53,11 @@ knob SetGrassHeightMaxCm = 72
 knob SetGrassWavePeriodCm = 700
 knob SetGrassWindStrengthCm = 7
 knob SetGrassWindSpeedPercent = 110
-knob SetGrassSpacingCm = 6
+knob SetGrassSpacingCm = 4
 knob SetGrassBladeDensityPercent = 100
-knob SetGrassBladeWidthPercent = 125
+knob SetGrassBladeWidthPercent = 160
 knob SetGrassBendStrengthPercent = 170
-knob SetGrassTerrainActiveDistanceM = 45
+knob SetGrassTerrainActiveDistanceM = 32
 section "River"
 knob SetWaterEnabled = 1
 knob SetWaterSeaLevelCm = -50
@@ -214,17 +214,17 @@ out.orm = orm(occlusion: 1.0, roughness: 0.9, metallic: 0.0);
 //         2 = dab strength (0 = plain texture, 1 = full dabs), 3 = stroke angle (rad),
 //         4..6 = RGB tint.  World-space, so strokes never swim with the camera.
 // ============================================================
-material MonetPlaster { shader = "MonetBrushSurface" tex0 = "baked.MonetPlasterTex.color" param0 = 3.0 param1 = 0.05 param2 = 0.45 param3 = 1.5 }
-material MonetPlasterRose { shader = "MonetBrushSurface" tex0 = "baked.MonetPlasterTex.color" param0 = 3.0 param1 = 0.05 param2 = 0.45 param3 = 1.5 param4 = 1.0 param5 = 0.9 param6 = 0.88 }
-material MonetPlasterOchre { shader = "MonetBrushSurface" tex0 = "baked.MonetPlasterTex.color" param0 = 3.0 param1 = 0.05 param2 = 0.45 param3 = 1.5 param4 = 1.0 param5 = 0.95 param6 = 0.84 }
-material MonetStone { shader = "MonetBrushSurface" tex0 = "baked.MonetStoneTex.color" param0 = 2.5 param1 = 0.05 param2 = 0.5 param3 = 0.2 }
-material MonetRoof { shader = "MonetBrushSurface" tex0 = "baked.MonetRoofTex.color" param0 = 2.0 param1 = 0.05 param2 = 0.55 param3 = 0.3 }
-material MonetRoofDark { shader = "MonetBrushSurface" tex0 = "baked.MonetRoofTex.color" param0 = 2.0 param1 = 0.05 param2 = 0.55 param3 = 0.3 param4 = 0.85 param5 = 0.78 param6 = 0.82 }
-material MonetPath { shader = "MonetBrushSurface" tex0 = "baked.MonetPathTex.color" param0 = 3.0 param1 = 0.06 param2 = 0.6 }
+material MonetPlaster { shader = "MonetPaintSurface" tex0 = "baked.MonetPlasterTex.color" param0 = 3.0 param1 = 0.055 param2 = 0.9 param3 = 1.5 }
+material MonetPlasterRose { shader = "MonetPaintSurface" tex0 = "baked.MonetPlasterTex.color" param0 = 3.0 param1 = 0.055 param2 = 0.9 param3 = 1.5 param4 = 1.0 param5 = 0.9 param6 = 0.88 }
+material MonetPlasterOchre { shader = "MonetPaintSurface" tex0 = "baked.MonetPlasterTex.color" param0 = 3.0 param1 = 0.055 param2 = 0.9 param3 = 1.5 param4 = 1.0 param5 = 0.95 param6 = 0.84 }
+material MonetStone { shader = "MonetPaintSurface" tex0 = "baked.MonetStoneTex.color" param0 = 2.5 param1 = 0.05 param2 = 0.85 param3 = 0.2 param7 = 0.6 }
+material MonetRoof { shader = "MonetPaintSurface" tex0 = "baked.MonetRoofTex.color" param0 = 2.0 param1 = 0.05 param2 = 0.9 param3 = 0.3 }
+material MonetRoofDark { shader = "MonetPaintSurface" tex0 = "baked.MonetRoofTex.color" param0 = 2.0 param1 = 0.05 param2 = 0.9 param3 = 0.3 param4 = 0.85 param5 = 0.78 param6 = 0.82 }
+material MonetPath { shader = "MonetPaintSurface" tex0 = "baked.MonetPathTex.color" param0 = 3.0 param1 = 0.07 param2 = 0.9 param7 = 0.6 }
 material MonetBarkMat { base = "MonetBark" }
-material MonetShutterBlue { base = "MonetWood" tint = "#B4BCD0" }
-material MonetShutterGreen { base = "MonetWood" tint = "#9FB89A" }
-material MonetTimber { base = "MonetWood" tint = "#6A5566" }
+material MonetShutterBlue { shader = "MonetPaintSurface" tex0 = "baked.MonetWood.color" param0 = 1.5 param1 = 0.03 param2 = 0.85 param3 = 1.57 param4 = 0.78 param5 = 0.84 param6 = 1.0 }
+material MonetShutterGreen { shader = "MonetPaintSurface" tex0 = "baked.MonetWood.color" param0 = 1.5 param1 = 0.03 param2 = 0.85 param3 = 1.57 param4 = 0.72 param5 = 0.9 param6 = 0.7 }
+material MonetTimber { shader = "MonetPaintSurface" tex0 = "baked.MonetWood.color" param0 = 1.5 param1 = 0.03 param2 = 0.85 param3 = 0.0 param4 = 0.55 param5 = 0.45 param6 = 0.55 }
 material FlowerLeaf { base = "MonetPlasterProc" tint = "#8FA66A" }
 material FlowerPink { base = "MonetPlasterProc" tint = "#FF9FC4" }
 material FlowerRed { base = "MonetPlasterProc" tint = "#FF6A5A" }
@@ -295,7 +295,7 @@ out.orm.b = 0.0;
 #end
 
 // Terrain: same brush, grass on the flats, painted earth on slopes.
-material MonetGround { shader = "MonetBrushTerrain" tex0 = "baked.MonetGrassTex.color" tex1 = "baked.MonetPathTex.color" }
+material MonetGround { shader = "MonetPaintTerrain" tex0 = "baked.MonetGrassTex.color" tex1 = "baked.MonetPathTex.color" }
 #shader MonetBrushTerrain
 @module {
 fn mt_hash(x: f32, y: f32, s: f32) -> f32 {
@@ -355,6 +355,211 @@ out.orm.r = 1.0;
 out.orm.g = 0.95;
 out.orm.b = 0.0;
 #end
+
+// ============================================================
+// OIL-PAINT MATERIAL SHADERS (11-11 Memories Retold style, per surface).
+// Every surface is rebuilt from overlapping elongated brush strokes laid on
+// the world-space plane: each stroke takes ONE flat colour (sampled at its
+// centre), gets its own value / warm-cool shift, bristle streaks, and a
+// rounded impasto profile that tilts the normal so strokes catch the sun.
+// Stroke size grows with distance so far surfaces stay painterly, not noisy.
+// ============================================================
+#shader MonetPaintSurface
+@module {
+struct PsHit { c: vec2<f32>, b: f32, id: f32, ang: f32, d: f32 }
+fn ps_hash(x: f32, y: f32, s: f32) -> f32 {
+    return fract(sin(x * 127.1 + y * 311.7 + s * 74.7) * 43758.5453);
+}
+fn ps_stroke(p: vec2<f32>, s: f32, seed: f32, base_ang: f32, spread: f32) -> PsHit {
+    let g = floor(p / s);
+    var bestPri = -1.0;
+    var bestD = 1e9;
+    var top = PsHit(p, 0.0, 0.0, base_ang, 9.0);
+    var near = PsHit(p, 0.0, 0.0, base_ang, 9.0);
+    for (var j: i32 = -1; j <= 1; j = j + 1) {
+        for (var i: i32 = -1; i <= 1; i = i + 1) {
+            let c = g + vec2<f32>(f32(i), f32(j));
+            let h0 = ps_hash(c.x, c.y, seed);
+            let h1 = ps_hash(c.y, c.x, seed + 1.0);
+            let h2 = ps_hash(c.x, c.y, seed + 2.0);
+            let h3 = ps_hash(c.y, c.x, seed + 3.0);
+            let ctr = (c + vec2<f32>(h0, h1)) * s;
+            let ang = base_ang + (h2 - 0.5) * spread;
+            let dir = vec2<f32>(cos(ang), sin(ang));
+            let rel = p - ctr;
+            let a = dot(rel, dir) / (s * (1.2 + 1.0 * h3));
+            let b = dot(rel, vec2<f32>(-dir.y, dir.x)) / (s * 0.4);
+            let d = a * a + b * b;
+            let id = c.x * 17.0 + c.y * 131.0 + seed;
+            if (d < 1.0 && h3 > bestPri) {
+                bestPri = h3;
+                top = PsHit(ctr, b, id, ang, d);
+            }
+            if (d < bestD) {
+                bestD = d;
+                near = PsHit(ctr, b, id, ang, d);
+            }
+        }
+    }
+    if (bestPri >= 0.0) {
+        return top;
+    }
+    return near;
+}
+}
+// params: 0 tile m, 1 stroke size m, 2 paint strength, 3 stroke angle, 4-6 tint, 7 impasto
+let tile = select(3.0, mat.params4[0].x, mat.params4[0].x > 0.0);
+let brush = select(0.06, mat.params4[0].y, mat.params4[0].y > 0.0);
+let strength = select(0.85, mat.params4[0].z, mat.params4[0].z > 0.0);
+let base_ang = select(0.6, mat.params4[0].w, mat.params4[0].w > 0.0);
+let tp = mat.params4[1].xyz;
+let tint = select(vec3<f32>(1.0), tp, (tp.x + tp.y + tp.z) > 0.0);
+let imp = select(0.2, mat.params4[1].w, mat.params4[1].w > 0.0);
+let n = normalize(ctx.normal);
+let an = abs(n);
+let wp = ctx.world_pos;
+let useX = an.x >= an.y && an.x >= an.z;
+let useY = !useX && an.y >= an.z;
+var p = wp.xy;
+var ax_u = vec3<f32>(1.0, 0.0, 0.0);
+var ax_v = vec3<f32>(0.0, 1.0, 0.0);
+if (useX) {
+    p = wp.zy;
+    ax_u = vec3<f32>(0.0, 0.0, 1.0);
+}
+if (useY) {
+    p = wp.xz;
+    ax_v = vec3<f32>(0.0, 0.0, 1.0);
+}
+let dist = length(u_camera.camera_position - wp);
+let lvl = clamp(log2(max(dist, 1.0) / 5.0), 0.0, 6.0);
+let l0 = floor(lvl);
+let fr = lvl - l0;
+let s0 = brush * 2.6 * exp2(l0);
+let k0 = ps_stroke(p, s0, 3.0, base_ang, 0.9);
+let k1 = ps_stroke(p, s0 * 2.0, 7.0, base_ang, 0.9);
+var k = k0;
+if (ps_hash(k0.id, 0.37, 5.0) < fr) {
+    k = k1;
+}
+let uv = p / tile;
+let gx = dpdx(uv);
+let gy = dpdy(uv);
+let cs = textureSampleGrad(tex0, tex_sampler, k.c / tile, gx * 3.0, gy * 3.0).rgb;
+let cd = textureSampleGrad(tex0, tex_sampler, uv, gx, gy).rgb;
+let hv = ps_hash(k.id, 1.7, 9.0);
+let hh = ps_hash(k.id, 2.9, 11.0);
+let cover = smoothstep(1.0, 0.4, k.d);
+var sc = cs * (0.93 + 0.14 * hv);
+sc = mix(sc, sc * vec3<f32>(1.08, 1.0, 0.86), step(0.62, hh) * 0.45);
+sc = mix(sc, sc * vec3<f32>(0.9, 0.93, 1.08), step(hh, 0.22) * 0.45);
+sc = sc * (0.97 + 0.03 * sin(k.b * 14.0 + hv * 6.2831));
+var col = mix(mix(cd, cs, 0.5), sc, strength * cover);
+col = col * tint * ctx.mesh_color.rgb;
+let e2 = vec2<f32>(-sin(k.ang), cos(k.ang));
+let perpW = ax_u * e2.x + ax_v * e2.y;
+let nb = normalize(n + perpW * clamp(k.b, -1.0, 1.0) * imp * cover);
+out.world_normal = nb;
+let sunL = normalize(-u_camera.sun_direction.xyz);
+let warm = smoothstep(-0.1, 0.7, dot(nb, sunL));
+col = col * mix(vec3<f32>(0.97, 0.91, 1.0), vec3<f32>(1.07, 1.0, 0.9), warm);
+out.base_color = vec4<f32>(col, 1.0);
+out.orm.r = 1.0;
+out.orm.g = 0.9;
+out.orm.b = 0.0;
+#end
+
+// Ground: the same stroke painter on the horizontal plane, meadow hues jittered
+// per stroke (yellow-green / sap / blue-green / ochre), path colour on slopes.
+#shader MonetPaintTerrain
+@module {
+struct PtHit { c: vec2<f32>, b: f32, id: f32, ang: f32, d: f32 }
+fn pt_hash(x: f32, y: f32, s: f32) -> f32 {
+    return fract(sin(x * 127.1 + y * 311.7 + s * 74.7) * 43758.5453);
+}
+fn pt_stroke(p: vec2<f32>, s: f32, seed: f32) -> PtHit {
+    let g = floor(p / s);
+    var bestPri = -1.0;
+    var bestD = 1e9;
+    var top = PtHit(p, 0.0, 0.0, 0.6, 9.0);
+    var near = PtHit(p, 0.0, 0.0, 0.6, 9.0);
+    for (var j: i32 = -1; j <= 1; j = j + 1) {
+        for (var i: i32 = -1; i <= 1; i = i + 1) {
+            let c = g + vec2<f32>(f32(i), f32(j));
+            let h0 = pt_hash(c.x, c.y, seed);
+            let h1 = pt_hash(c.y, c.x, seed + 1.0);
+            let h2 = pt_hash(c.x, c.y, seed + 2.0);
+            let h3 = pt_hash(c.y, c.x, seed + 3.0);
+            let ctr = (c + vec2<f32>(h0, h1)) * s;
+            let ang = 0.6 + (h2 - 0.5) * 1.6;
+            let dir = vec2<f32>(cos(ang), sin(ang));
+            let rel = p - ctr;
+            let a = dot(rel, dir) / (s * (1.2 + 1.0 * h3));
+            let b = dot(rel, vec2<f32>(-dir.y, dir.x)) / (s * 0.4);
+            let d = a * a + b * b;
+            let id = c.x * 17.0 + c.y * 131.0 + seed;
+            if (d < 1.0 && h3 > bestPri) {
+                bestPri = h3;
+                top = PtHit(ctr, b, id, ang, d);
+            }
+            if (d < bestD) {
+                bestD = d;
+                near = PtHit(ctr, b, id, ang, d);
+            }
+        }
+    }
+    if (bestPri >= 0.0) {
+        return top;
+    }
+    return near;
+}
+}
+let wp = ctx.world_pos;
+let n = normalize(ctx.normal);
+let p = wp.xz;
+let dist = length(u_camera.camera_position - wp);
+let lvl = clamp(log2(max(dist, 1.0) / 5.0), 0.0, 7.0);
+let l0 = floor(lvl);
+let fr = lvl - l0;
+let s0 = 0.16 * exp2(l0);
+let k0 = pt_stroke(p, s0, 3.0);
+let k1 = pt_stroke(p, s0 * 2.0, 7.0);
+var k = k0;
+if (pt_hash(k0.id, 0.37, 5.0) < fr) {
+    k = k1;
+}
+let tile = 6.0;
+let uv = p / tile;
+let gx = dpdx(uv);
+let gy = dpdy(uv);
+let gs = textureSampleGrad(tex0, tex_sampler, k.c / tile, gx * 3.0, gy * 3.0).rgb;
+let es = textureSampleGrad(tex1, tex_sampler, k.c / 3.0, gx * 4.0, gy * 4.0).rgb;
+let hv = pt_hash(k.id, 1.7, 9.0);
+let hh = pt_hash(k.id, 2.9, 11.0);
+let cover = smoothstep(1.0, 0.4, k.d);
+let gd = textureSampleGrad(tex0, tex_sampler, uv, gx * 2.0, gy * 2.0).rgb;
+var gsc = gs * (0.9 + 0.2 * hv);
+gsc = mix(gsc, gsc * vec3<f32>(1.12, 1.06, 0.78), step(0.7, hh) * 0.55);
+gsc = mix(gsc, gsc * vec3<f32>(0.84, 0.95, 1.08), step(hh, 0.2) * 0.55);
+let grass = mix(gd, gsc, 0.35 + 0.6 * cover);
+let steep = smoothstep(0.82, 0.62, n.y);
+var col = mix(grass, es * vec3<f32>(1.0, 0.92, 0.85), steep);
+col = col * (0.97 + 0.03 * sin(k.b * 14.0 + hv * 6.2831));
+let far = smoothstep(80.0, 600.0, dist);
+col = mix(col, col * vec3<f32>(0.92, 0.95, 1.08), far);
+let e2 = vec2<f32>(-sin(k.ang), cos(k.ang));
+let nb = normalize(n + vec3<f32>(e2.x, 0.0, e2.y) * clamp(k.b, -1.0, 1.0) * 0.18 * cover);
+out.world_normal = nb;
+let sunL = normalize(-u_camera.sun_direction.xyz);
+let warm = smoothstep(-0.1, 0.7, dot(nb, sunL));
+col = col * mix(vec3<f32>(0.9, 0.88, 1.06), vec3<f32>(1.07, 1.0, 0.9), warm);
+out.base_color = vec4<f32>(col, 1.0);
+out.orm.r = 1.0;
+out.orm.g = 0.95;
+out.orm.b = 0.0;
+#end
+material MonetBarkPaint { shader = "MonetPaintSurface" tex0 = "baked.MonetBark.color" param0 = 1.5 param1 = 0.025 param2 = 0.8 param3 = 1.57 param7 = 0.6 }
+material MonetWoodPaint { shader = "MonetPaintSurface" tex0 = "baked.MonetWood.color" param0 = 1.5 param1 = 0.03 param2 = 0.8 param3 = 1.57 }
 
 // ============================================================
 // TREE KIT (reusable species; duplicate + change seed/tint for variants)
