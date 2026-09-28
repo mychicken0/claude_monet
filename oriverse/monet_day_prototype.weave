@@ -296,6 +296,30 @@ out.orm.b = 0.0;
 
 // Terrain: same brush, grass on the flats, painted earth on slopes.
 material MonetGround { shader = "MonetPaintTerrain" tex0 = "baked.MonetGrassTex.color" tex1 = "baked.MonetPathTex.color" }
+
+// PS1 look as a fullscreen pass: big low-res pixels (param 0 = vertical
+// pixel count, e.g. 240), 15-bit-style colour (param 1 = levels per channel,
+// 32) with a 4x4 Bayer dither (param 2 = dither strength), param 3 = on/off.
+material Ps1Screen { shader = "Ps1ScreenPass" }
+#shader Ps1ScreenPass
+let res = vec2<f32>(ctx.resolution);
+let lines = max(mat.params4[0].x, 60.0);
+let levels = max(mat.params4[0].y, 2.0);
+let dith = mat.params4[0].z;
+let on = mat.params4[0].w;
+let px = res.y / lines;
+let cell = floor(ctx.uv * res / px);
+let uvq = (cell + vec2<f32>(0.5)) * px / res;
+var c = ori_screen_color(uvq).rgb;
+let ix = u32(cell.x) % 4u;
+let iy = u32(cell.y) % 4u;
+let m2a = 2u * ((ix & 1u) ^ (iy & 1u)) + (iy & 1u);
+let m2b = 2u * ((ix >> 1u) ^ (iy >> 1u)) + (iy >> 1u);
+let bayer = (f32(4u * m2a + m2b) + 0.5) / 16.0 - 0.5;
+let q = levels - 1.0;
+c = floor(c * q + 0.5 + bayer * dith) / q;
+out.color = vec4<f32>(mix(ctx.color.rgb, clamp(c, vec3<f32>(0.0), vec3<f32>(1.0)), step(0.5, on)), 1.0);
+#end
 #shader MonetBrushTerrain
 @module {
 fn mt_hash(x: f32, y: f32, s: f32) -> f32 {
@@ -1413,22 +1437,20 @@ out.color = vec4<f32>(col, 1.0);
 event OnSpawned {
     SetDefaultPlayerControlsEnabled(true)
     SetCameraToFirstPerson()
-    SetScreenShader(Material.MonetPaint)
-    SetMaterialParameterNumber(Material.MonetPaint, 0, 1)
-    SetMaterialParameterNumber(Material.MonetPaint, 1, 0.5)
-    SetMaterialParameterNumber(Material.MonetPaint, 2, 0.5)
-    SetMaterialParameterNumber(Material.MonetPaint, 3, 1.6)
-    SetMaterialParameterNumber(Material.MonetPaint, 4, 7)
-    SetMaterialParameterNumber(Material.MonetPaint, 5, 4)
-    SetMaterialParameterNumber(Material.MonetPaint, 6, 0)
+    SetScreenShader(Material.Ps1Screen)
+    SetMaterialParameterNumber(Material.Ps1Screen, 0, 240)
+    SetMaterialParameterNumber(Material.Ps1Screen, 1, 32)
+    SetMaterialParameterNumber(Material.Ps1Screen, 2, 1)
+    SetMaterialParameterNumber(Material.Ps1Screen, 3, 1)
+    Print("PS1 screen shader set")
     var PaintOn = true
     forever {
         if IsKeyPressedByThisPlayer(Key.P) {
             PaintOn = !PaintOn
             if PaintOn {
-                SetMaterialParameterNumber(Material.MonetPaint, 0, 1)
+                SetMaterialParameterNumber(Material.Ps1Screen, 3, 1)
             } else {
-                SetMaterialParameterNumber(Material.MonetPaint, 0, 0)
+                SetMaterialParameterNumber(Material.Ps1Screen, 3, 0)
             }
         }
     }
