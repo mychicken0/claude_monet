@@ -34,6 +34,7 @@ knob SetFogStartDistance = 40
 knob SetFogEndDistance = 700
 knob SetFogSkyboxAffect = 20
 knob SetWindStrength = 0.3
+knob SetTreeLodSwitchDistanceM = 30
 section "River"
 knob SetWaterEnabled = 1
 knob SetWaterSeaLevelCm = -50
@@ -102,19 +103,19 @@ out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
 // Colour variants: derive, don't duplicate texture code.
 // ---- Painted surfaces: Codex-generated Monet oil paintings (oriverse/textures/*.png, imported as project images) ----
 // Each is a world-space triplanar #texture; recolour with `tint` or a derived material.
-#texture MonetPlaster
+#texture MonetPlasterTex
 mapping = triplanar_world;
 tile_m = 3.0;
 size = 1024;
-param tint = color("#FFFFFF");
-param desat = 0.35 range 0.0..1.0;
+param tint = color("#FFF6EE");
+param desat = 0.5 range 0.0..1.0;
 let c = image("projimg.monet_plaster_06d44a3d", uv, wrap: "repeat").rgb * tint;
 let l = dot(c, vec3(0.333, 0.333, 0.333));
 out.color = mix(c, vec3(l, l, l), desat);
 out.normal = normal_from_height(l * 0.04, strength: 0.5);
 out.orm = orm(occlusion: 1.0, roughness: 0.92, metallic: 0.0);
 #end
-#texture MonetStone
+#texture MonetStoneTex
 mapping = triplanar_world;
 tile_m = 2.5;
 size = 512;
@@ -126,7 +127,7 @@ out.color = mix(c, vec3(l, l, l), desat);
 out.normal = normal_from_height(l * 0.04, strength: 0.5);
 out.orm = orm(occlusion: 1.0, roughness: 0.92, metallic: 0.0);
 #end
-#texture MonetRoof
+#texture MonetRoofTex
 mapping = triplanar_world;
 tile_m = 2.0;
 size = 512;
@@ -138,7 +139,7 @@ out.color = mix(c, vec3(l, l, l), desat);
 out.normal = normal_from_height(l * 0.04, strength: 0.5);
 out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
 #end
-#texture MonetGrass
+#texture MonetGrassTex
 mapping = triplanar_world;
 tile_m = 6.0;
 size = 1024;
@@ -150,7 +151,7 @@ out.color = mix(c, vec3(l, l, l), desat);
 out.normal = normal_from_height(l * 0.04, strength: 0.5);
 out.orm = orm(occlusion: 1.0, roughness: 0.95, metallic: 0.0);
 #end
-#texture MonetPath
+#texture MonetPathTex
 mapping = triplanar_world;
 tile_m = 3.0;
 size = 1024;
@@ -162,9 +163,118 @@ out.color = mix(c, vec3(l, l, l), desat);
 out.normal = normal_from_height(l * 0.04, strength: 0.5);
 out.orm = orm(occlusion: 1.0, roughness: 0.9, metallic: 0.0);
 #end
-material MonetPlasterRose { base = "MonetPlaster" tint = "#FBE3DA" }
-material MonetPlasterOchre { base = "MonetPlaster" tint = "#F6EAD0" }
-material MonetRoofDark { base = "MonetRoof" tint = "#D2B4B4" }
+// ---- GPU Monet: brush-dab surface shader (world-space, distance-adaptive, warm-sun / cool-shade push) ----
+// param0 = metres per texture repeat, param1 = brush dab size (m) near the camera, param4..6 = RGB tint.
+material MonetPlaster { shader = "MonetBrushSurface" tex0 = "baked.MonetPlasterTex.color" param0 = 3.0 param1 = 0.07 }
+material MonetPlasterRose { shader = "MonetBrushSurface" tex0 = "baked.MonetPlasterTex.color" param0 = 3.0 param1 = 0.07 param4 = 1.0 param5 = 0.9 param6 = 0.88 }
+material MonetStone { shader = "MonetBrushSurface" tex0 = "baked.MonetStoneTex.color" param0 = 2.5 param1 = 0.06 }
+material MonetRoof { shader = "MonetBrushSurface" tex0 = "baked.MonetRoofTex.color" param0 = 2.0 param1 = 0.05 }
+material MonetGrass { shader = "MonetBrushSurface" tex0 = "baked.MonetGrassTex.color" param0 = 6.0 param1 = 0.09 }
+material MonetPath { shader = "MonetBrushSurface" tex0 = "baked.MonetPathTex.color" param0 = 3.0 param1 = 0.07 }
+#shader MonetBrushSurface
+@module {
+fn mb_hash(x: f32, y: f32, s: f32) -> f32 {
+    return fract(sin(x * 127.1 + y * 311.7 + s * 74.7) * 43758.5453);
+}
+fn mb_dab(p: vec2<f32>, s: f32, seed: f32) -> vec2<f32> {
+    let g = floor(p / s);
+    var best = 1e9;
+    var bestPt = p;
+    for (var j: i32 = -1; j <= 1; j = j + 1) {
+        for (var i: i32 = -1; i <= 1; i = i + 1) {
+            let c = g + vec2<f32>(f32(i), f32(j));
+            let ctr = (c + vec2<f32>(mb_hash(c.x, c.y, seed), mb_hash(c.y, c.x, seed + 1.0))) * s;
+            let ang = (mb_hash(c.x, c.y, seed + 2.0) - 0.5) * 1.2 + 0.6;
+            let dir = vec2<f32>(cos(ang), sin(ang));
+            let rel = p - ctr;
+            let along = dot(rel, dir);
+            let across = rel - dir * along;
+            let d = length(across) + abs(along) * 0.35;
+            if (d < best) {
+                best = d;
+                bestPt = ctr + dir * along * 0.7;
+            }
+        }
+    }
+    return bestPt;
+}
+}
+let tile = select(3.0, mat.params4[0].x, mat.params4[0].x > 0.0);
+let brush = select(0.06, mat.params4[0].y, mat.params4[0].y > 0.0);
+let tp = mat.params4[1].xyz;
+let tint = select(vec3<f32>(1.0), tp, (tp.x + tp.y + tp.z) > 0.0);
+let n = normalize(ctx.normal);
+let an = abs(n);
+let wp = ctx.world_pos;
+let useX = an.x >= an.y && an.x >= an.z;
+let useY = !useX && an.y >= an.z;
+var p = wp.xy;
+p = select(p, wp.zy, useX);
+p = select(p, wp.xz, useY);
+let dist = length(u_camera.camera_position - wp);
+let lvl = clamp(log2(max(dist, 1.0) / 6.0), 0.0, 6.0);
+let l0 = floor(lvl);
+let fr = lvl - l0;
+let s0 = brush * exp2(l0);
+let q0 = mb_dab(p, s0, 3.0);
+let q1 = mb_dab(p, s0 * 2.0, 7.0);
+let uv = p / tile;
+let gx = dpdx(uv);
+let gy = dpdy(uv);
+let c0 = textureSampleGrad(tex0, tex_sampler, q0 / tile, gx, gy).rgb;
+let c1 = textureSampleGrad(tex0, tex_sampler, q1 / tile, gx, gy).rgb;
+var col = mix(c0, c1, fr) * tint * ctx.mesh_color.rgb;
+let sunL = normalize(-u_camera.sun_direction.xyz);
+let warm = smoothstep(-0.1, 0.7, dot(n, sunL));
+col = col * mix(vec3<f32>(0.86, 0.86, 1.12), vec3<f32>(1.07, 1.0, 0.9), warm);
+out.base_color = vec4<f32>(col, 1.0);
+out.orm.r = 1.0;
+out.orm.g = 0.9;
+out.orm.b = 0.0;
+#end
+
+// ---- Painted distant backdrops (Codex, transparent sky) ----
+#texture BackdropCastleTex
+mapping = uv;
+wrap = clamp;
+render_mode = cutout;
+size = 1024;
+let t = image("projimg.backdrop_castle_19129797", uv, wrap: "clamp");
+out.color = t.rgb;
+out.alpha = t.a;
+out.normal = normal_from_height(0.0, strength: 0.1);
+out.orm = orm(occlusion: 1.0, roughness: 1.0, metallic: 0.0);
+#end
+#texture BackdropHillsTex
+mapping = uv;
+wrap = clamp;
+render_mode = cutout;
+size = 1024;
+let t = image("projimg.backdrop_hills_42ccb46a", uv, wrap: "clamp");
+out.color = t.rgb;
+out.alpha = t.a;
+out.normal = normal_from_height(0.0, strength: 0.1);
+out.orm = orm(occlusion: 1.0, roughness: 1.0, metallic: 0.0);
+#end
+#texture BackdropMountainsTex
+mapping = uv;
+wrap = clamp;
+render_mode = cutout;
+size = 1024;
+let t = image("projimg.backdrop_mountains_0dff8904", uv, wrap: "clamp");
+out.color = t.rgb;
+out.alpha = t.a;
+out.normal = normal_from_height(0.0, strength: 0.1);
+out.orm = orm(occlusion: 1.0, roughness: 1.0, metallic: 0.0);
+#end
+material BackdropCastle { base = "BackdropCastleTex" lighting = "unlit" }
+material BackdropHills { base = "BackdropHillsTex" lighting = "unlit" }
+material BackdropMountains { base = "BackdropMountainsTex" lighting = "unlit" }
+#mesh BackdropPanel
+out.geo = rotate_x(plane(width: 25000, height: 10000, material: "BackdropHills"), -90);
+#end
+material MonetPlasterOchre { shader = "MonetBrushSurface" tex0 = "baked.MonetPlasterTex.color" param0 = 3.0 param1 = 0.07 param4 = 1.0 param5 = 0.96 param6 = 0.86 }
+material MonetRoofDark { shader = "MonetBrushSurface" tex0 = "baked.MonetRoofTex.color" param0 = 2.0 param1 = 0.05 param4 = 0.85 param5 = 0.78 param6 = 0.82 }
 material MonetShutterBlue { base = "MonetWood" tint = "#B4BCD0" }
 
 // Screen pass: Kuwahara oil-paint abstraction (no time input -> no temporal swim),
@@ -222,11 +332,11 @@ material FlowerRed { base = "MonetPlasterProc" tint = "#FF6A5A" }
   mode: colonize
   leader: 40
   levels: 3
-  children: 5
+  children: 4
   segments: 6
   trunk_height: 600
   trunk_radius: 22
-  points: 350
+  points: 160
   length_pct: 78
   radius_pct: 50
   angle_deg: 50
@@ -234,15 +344,15 @@ material FlowerRed { base = "MonetPlasterProc" tint = "#FF6A5A" }
   curve_jitter_pct: 22
   trunk_lean_deg: 5
   trunk_sweep_pct: 18
-  leaves: 9
-  leaf_size: 170
+  leaves: 7
+  leaf_size: 200
   leaf: MonetLeafCard
   bark: MonetBark
   leaf_clump_pct: 70
   leaf_detail_pct: 60
-  leaf_normal_up_pct: 40
-  leaf_ao_pct: 20
-  leaf_val_pct: 150
+  leaf_normal_up_pct: 60
+  leaf_ao_pct: 10
+  leaf_val_pct: 180
   crown_ellipsoid: 0, 0, 620, 380, 360, 300
   crown_ellipsoid: 220, 80, 560, 240, 220, 200
   crown_ellipsoid: -180, -120, 700, 240, 220, 200
@@ -252,12 +362,12 @@ material FlowerRed { base = "MonetPlasterProc" tint = "#FF6A5A" }
   seed: 12
   mode: colonize
   leader: 100
-  levels: 3
-  children: 4
+  levels: 2
+  children: 6
   segments: 6
   trunk_height: 1100
   trunk_radius: 15
-  points: 300
+  points: 120
   length_pct: 55
   radius_pct: 45
   angle_deg: 18
@@ -265,12 +375,14 @@ material FlowerRed { base = "MonetPlasterProc" tint = "#FF6A5A" }
   curve_jitter_pct: 10
   trunk_lean_deg: 1
   trunk_sweep_pct: 4
-  leaves: 12
-  leaf_size: 90
+  leaves: 10
+  leaf_size: 110
   leaf: MonetLeafCard
   bark: MonetBark
   leaf_tint: #6E9486
-  leaf_val_pct: 120
+  leaf_val_pct: 150
+  leaf_normal_up_pct: 50
+  leaf_ao_pct: 10
   leaf_clump_pct: 60
   leaf_detail_pct: 50
   crown_ellipsoid: 0, 0, 600, 85, 85, 520
@@ -563,3 +675,9 @@ object CypressT1 { model = "tree.MonetCypress" position = (3950, 1450, 0) }
 object CypressT2 { model = "tree.MonetCypress" position = (5050, -1500, 0) }
 object CypressT3 { model = "tree.MonetCypress" position = (6650, -600, 0) }
 object RoundTreeT1 { model = "tree.MonetRoundTree" position = (3000, -1500, 0) }
+
+// ---- painted backdrops (unlit, cutout sky) ----
+display BackdropEast { model = "mesh.BackdropPanel" material = "BackdropCastle" position = (20000, 0, -4000) rotation = (0, 0, 90) }
+display BackdropNorth { model = "mesh.BackdropPanel" material = "BackdropHills" position = (3000, 18000, -4000) }
+display BackdropSouth { model = "mesh.BackdropPanel" material = "BackdropMountains" position = (3000, -18000, -4000) }
+display BackdropWest { model = "mesh.BackdropPanel" material = "BackdropHills" position = (-15000, 0, -4000) rotation = (0, 0, 90) }
