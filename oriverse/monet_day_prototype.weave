@@ -18,7 +18,7 @@ knob SetSunIntensity = 7.5
 knob SetSunColor = #FFD6A0
 knob SetSkyLightIntensity = 1.5
 knob SetSkyLightColor = #9CA6E6
-knob SetSkyLightSaturation = 1.6
+knob SetSkyLightSaturation = 1.15
 knob SetShadowOpacity = 0.62
 knob SetShadowBlurRadius = 5
 knob SetSkyboxCloudCoverage = 0.25
@@ -34,7 +34,7 @@ knob SetFogStartDistance = 30
 knob SetFogEndDistance = 900
 knob SetFogSkyboxAffect = 20
 knob SetWindStrength = 0.3
-knob SetTreeLodSwitchDistanceM = 30
+knob SetTreeLodSwitchDistanceM = 20
 section "Painterly softness"
 knob SetDofEnabled = 1
 knob SetDofArtisticEnabled = 1
@@ -44,15 +44,20 @@ knob SetDofNearTransitionM = 0.5
 knob SetDofFarTransitionM = 60
 knob SetDofFStop = 2.8
 section "Meadow grass"
-knob SetGrassRootColor = #56683A
-knob SetGrassTipColor = #D2C47A
-knob SetGrassBrightnessVariationPercent = 140
+knob SetGrassRootColor = #3E5A2A
+knob SetGrassTipColor = #BCCB6A
+knob SetGrassBrightnessVariationPercent = 170
 knob SetGrassSizeVariationPercent = 100
-knob SetGrassHeightMinCm = 18
-knob SetGrassHeightMaxCm = 70
-knob SetGrassWavePeriodCm = 900
-knob SetGrassWindStrengthCm = 5
-knob SetGrassSpacingCm = 22
+knob SetGrassHeightMinCm = 26
+knob SetGrassHeightMaxCm = 72
+knob SetGrassWavePeriodCm = 700
+knob SetGrassWindStrengthCm = 7
+knob SetGrassWindSpeedPercent = 110
+knob SetGrassSpacingCm = 6
+knob SetGrassBladeDensityPercent = 100
+knob SetGrassBladeWidthPercent = 125
+knob SetGrassBendStrengthPercent = 170
+knob SetGrassTerrainActiveDistanceM = 45
 section "River"
 knob SetWaterEnabled = 1
 knob SetWaterSeaLevelCm = -50
@@ -91,7 +96,8 @@ event OnSpawned {
     SetCameraFarDistanceM(3000)
     var t = SpawnTerrainRecipe(100, Origin())
     t.SetTerrainMaterial(Material.MonetGround)
-    t.SetTerrainGrassVisible(false)
+    t.SetTerrainGrassVisible(true)
+    t.SetTerrainGrassStyle(1)
 }
 #end
 display World : MonetWorld { visible = false }
@@ -281,7 +287,7 @@ let cd = textureSampleGrad(tex0, tex_sampler, uv, gx, gy).rgb;
 var col = mix(cd, mix(c0, c1, fr), strength) * tint * ctx.mesh_color.rgb;
 let sunL = normalize(-u_camera.sun_direction.xyz);
 let warm = smoothstep(-0.1, 0.7, dot(n, sunL));
-col = col * mix(vec3<f32>(0.86, 0.86, 1.12), vec3<f32>(1.07, 1.0, 0.9), warm);
+col = col * mix(vec3<f32>(0.97, 0.91, 1.0), vec3<f32>(1.07, 1.0, 0.9), warm);
 out.base_color = vec4<f32>(col, 1.0);
 out.orm.r = 1.0;
 out.orm.g = 0.9;
@@ -370,8 +376,8 @@ out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
   seed: 7
   mode: spiral
   levels: 3
-  children: 5
-  segments: 5
+  children: 4
+  segments: 4
   collider_levels: 1
   trunk_height: 420
   trunk_radius: 32
@@ -389,7 +395,7 @@ out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
   root_flare_pct: 70
   droop_pct: 12
   leaf_base: 260
-  leaves: 8
+  leaves: 6
   leaf_size: 230
   leaf: MonetLeafCard
   bark: MonetBark
@@ -408,12 +414,12 @@ out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
   seed: 12
   mode: colonize
   leader: 100
-  levels: 2
-  children: 6
-  segments: 6
+  levels: 1
+  children: 4
+  segments: 4
   trunk_height: 1100
   trunk_radius: 15
-  points: 120
+  points: 40
   length_pct: 55
   radius_pct: 45
   angle_deg: 18
@@ -421,8 +427,8 @@ out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
   curve_jitter_pct: 10
   trunk_lean_deg: 1
   trunk_sweep_pct: 4
-  leaves: 10
-  leaf_size: 110
+  leaves: 5
+  leaf_size: 145
   leaf: MonetLeafCard
   bark: MonetBark
   leaf_tint: #6E9486
@@ -433,8 +439,8 @@ out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
   leaf_detail_pct: 160
   leaf_curl_pct: 220
   leaf_shell_pct: 60
-  trunk_noise_pct: 30
-  trunk_gnarl_pct: 30
+  trunk_noise_pct: 0
+  trunk_gnarl_pct: 0
   collider_levels: 1
   crown_ellipsoid: 0, 0, 600, 85, 85, 520
   crown_ellipsoid: 0, 0, 1060, 45, 45, 180
@@ -557,7 +563,7 @@ out.geo = merge(
 #meshpart MonetFlower
 param h = 55;
 param r = 5.5;
-param n = 12;
+param n = 9;
 param pw = 0.34;
 param petal = "PetalWhite";
 param eye_r = 1.8;
@@ -566,7 +572,7 @@ let leaf = scale(polyhedron(kind: "octa", radius: 7, material: "FlowerStem"), (1
 let leaves = merge(translate(rotate_y(leaf, -30), (5, 0, h * 0.35)), translate(rotate_y(leaf, 210), (-4, 0, h * 0.2)));
 let pet = translate(scale(polyhedron(kind: "octa", radius: r * 0.55, material: petal), (1.0, pw, 0.12)), (r * 0.5, 0, 0));
 let ring = radial_array(pet, count: n, center: (0, 0, 0), radius: 0.1, axis: (0, 0, 1), rotate: "yes");
-let eye = scale(polyhedron(kind: "ico", radius: eye_r, material: "FlowerEye"), (1, 1, 0.6));
+let eye = scale(polyhedron(kind: "octa", radius: eye_r, material: "FlowerEye"), (1, 1, 0.6));
 let head = translate(rotate_y(merge(ring, eye), 35), (2, 1, h));
 out.geo = merge(stem, leaves, head);
 #end
@@ -621,30 +627,33 @@ out.geo = part(MonetLavender);
 #scatter MeadowDaisies
   model: "mesh.FlowerDaisy"
   seed: 41
-  spacing: 80
-  density_pct: 55
-  scale_min_pct: 110
-  scale_max_pct: 170
+  spacing: 22
+  density_pct: 60
+  scale_min_pct: 70
+  scale_max_pct: 120
+  shape: "M 37 54 L 40 46 L 45 39 L 51 40 L 56 50 L 52 60 L 49 68 L 44 68 L 38 66 Z M 62 1 L 68 1 L 72 1 L 76 10 L 73 21 L 69 29 L 64 29 L 61 19 L 58 6 Z M 37 79 L 39 67 L 44 63 L 49 59 L 53 71 L 52 86 L 49 96 L 44 95 L 40 89 Z M 36 2 L 41 9 L 40 21 L 34 25 L 30 27 L 23 25 L 23 13 L 24 1 L 31 1 Z M 19 68 L 16 77 L 9 76 L 7 66 L 5 58 L 8 52 L 13 50 L 19 49 L 19 59 Z M 75 72 L 76 86 L 75 98 L 72 99 L 68 99 L 67 94 L 65 80 L 68 71 L 72 62 Z M 88 30 L 92 40 L 90 52 L 84 55 L 80 46 L 82 34 Z"
   val_jitter_pct: 8
   terrain_normal_align_pct: 10
 #end
 #scatter MeadowCosmos
   model: "mesh.FlowerCosmos"
   seed: 42
-  spacing: 110
-  density_pct: 45
-  scale_min_pct: 110
-  scale_max_pct: 170
+  spacing: 28
+  density_pct: 55
+  scale_min_pct: 75
+  scale_max_pct: 120
+  shape: "M 92 36 L 89 43 L 87 31 L 85 17 L 87 6 L 90 1 L 93 3 L 95 14 L 95 32 Z M 72 77 L 73 85 L 72 92 L 68 99 L 63 96 L 57 91 L 58 82 L 61 74 L 67 74 Z M 3 96 L 1 83 L 5 74 L 9 70 L 13 72 L 15 82 L 15 94 L 12 99 L 7 99 Z M 56 48 L 52 52 L 48 46 L 48 35 L 51 28 L 54 21 L 57 28 L 60 35 L 60 46 Z M 24 40 L 19 38 L 18 30 L 19 22 L 23 15 L 30 16 L 34 24 L 31 33 L 29 40 Z M 40 80 L 45 72 L 50 78 L 48 90 L 42 92 Z"
   val_jitter_pct: 10
   terrain_normal_align_pct: 10
 #end
 #scatter MeadowLavender
   model: "mesh.FlowerLavender"
   seed: 43
-  spacing: 70
-  density_pct: 55
-  scale_min_pct: 100
-  scale_max_pct: 160
+  spacing: 22
+  density_pct: 65
+  scale_min_pct: 80
+  scale_max_pct: 125
+  shape: "M 84 62 L 84 52 L 88 46 L 92 49 L 96 55 L 96 67 L 92 74 L 88 77 L 85 69 Z M 16 81 L 16 91 L 15 99 L 12 99 L 8 99 L 7 93 L 5 85 L 8 79 L 12 78 Z M 22 1 L 25 4 L 26 14 L 26 25 L 24 35 L 21 33 L 19 27 L 18 14 L 20 4 Z M 56 42 L 60 35 L 64 35 L 68 36 L 70 45 L 70 56 L 65 58 L 60 63 L 59 52 Z M 44 32 L 44 19 L 48 6 L 54 12 L 57 22 L 58 34 L 56 49 L 50 53 L 45 44 Z M 51 81 L 50 65 L 55 52 L 62 49 L 68 57 L 70 71 L 69 86 L 63 93 L 56 92 Z M 34 60 L 38 55 L 42 62 L 40 72 L 35 70 Z"
   val_jitter_pct: 10
   terrain_normal_align_pct: 10
 #end
@@ -1126,6 +1135,72 @@ anchor(mode: "origin");
 out.geo = part(MonetFieldWall, len: 1400);
 #end
 
+// Fullscreen oil-paint pass (11-11 Memories Retold look): each pixel is pulled
+// from a jittered 'dab' cell along a flow field (ragged brushy silhouettes),
+// then a Kuwahara filter flattens colour into paint patches.
+// params: 0 paint mix, 1 grade, 2 haze, 3 kuwahara stride px,
+//         4 dab cell px, 5 edge wobble px, 6 dab re-rolls per second (0 = static).
+material MonetPaint { shader = "MonetPaintPass" }
+#shader MonetPaintPass
+let amt = mat.params4[0].x;
+let grade = mat.params4[0].y;
+let haze = mat.params4[0].z;
+let stride = max(mat.params4[0].w, 1.0);
+let dab = max(mat.params4[1].x, 2.0);
+let wob = mat.params4[1].y;
+let boil = mat.params4[1].z;
+let res = vec2<f32>(ctx.resolution);
+let pxy = ctx.uv * res;
+let tick = floor(ctx.time_seconds * boil);
+let flow = ori_fbm2(pxy.x / 140.0, pxy.y / 140.0, 2, 5u) * 6.2831;
+let dir = vec2<f32>(cos(flow), sin(flow));
+let along = dot(pxy, dir);
+let across = dot(pxy, vec2<f32>(-dir.y, dir.x));
+let cx = floor(along / (dab * 2.2));
+let cy = floor(across / dab);
+let h1 = ori_hash2(cx + tick * 13.0, cy, 3u);
+let h2 = ori_hash2(cx, cy - tick * 7.0, 9u);
+let jit = (dir * (h1 - 0.5) * 2.0 + vec2<f32>(-dir.y, dir.x) * (h2 - 0.5)) * wob;
+let uv0 = ctx.uv + jit / res;
+let px = vec2<f32>(stride) / res;
+var m0 = vec3<f32>(0.0); var m1 = vec3<f32>(0.0); var m2 = vec3<f32>(0.0); var m3 = vec3<f32>(0.0);
+var q0 = vec3<f32>(0.0); var q1 = vec3<f32>(0.0); var q2 = vec3<f32>(0.0); var q3 = vec3<f32>(0.0);
+for (var j: i32 = -3; j <= 3; j = j + 1) {
+    for (var i: i32 = -3; i <= 3; i = i + 1) {
+        let o = dir * f32(i) * 1.4 + vec2<f32>(-dir.y, dir.x) * f32(j) * 0.7;
+        let c = ori_screen_color(uv0 + o * px).rgb;
+        let c2 = c * c;
+        let a0 = select(0.0, 1.0, i <= 0 && j <= 0);
+        let a1 = select(0.0, 1.0, i >= 0 && j <= 0);
+        let a2 = select(0.0, 1.0, i <= 0 && j >= 0);
+        let a3 = select(0.0, 1.0, i >= 0 && j >= 0);
+        m0 += c * a0; q0 += c2 * a0;
+        m1 += c * a1; q1 += c2 * a1;
+        m2 += c * a2; q2 += c2 * a2;
+        m3 += c * a3; q3 += c2 * a3;
+    }
+}
+let n = 16.0;
+let e0 = m0 / n; let e1 = m1 / n; let e2 = m2 / n; let e3 = m3 / n;
+let v0 = abs(q0 / n - e0 * e0); let v1 = abs(q1 / n - e1 * e1); let v2 = abs(q2 / n - e2 * e2); let v3 = abs(q3 / n - e3 * e3);
+let w0 = 1.0 / pow(v0.r + v0.g + v0.b + 0.0004, 2.0);
+let w1 = 1.0 / pow(v1.r + v1.g + v1.b + 0.0004, 2.0);
+let w2 = 1.0 / pow(v2.r + v2.g + v2.b + 0.0004, 2.0);
+let w3 = 1.0 / pow(v3.r + v3.g + v3.b + 0.0004, 2.0);
+let paint = (e0 * w0 + e1 * w1 + e2 * w2 + e3 * w3) / (w0 + w1 + w2 + w3);
+let streak = 0.94 + 0.12 * ori_hash2(floor(along / 2.0), cy, 21u);
+var col = mix(ctx.color.rgb, paint * streak, amt);
+let l = dot(col, vec3<f32>(0.2126, 0.7152, 0.0722));
+let sh = 1.0 - smoothstep(0.05, 0.45, l);
+let hi = smoothstep(0.55, 0.95, l);
+col = mix(col, col * vec3<f32>(0.86, 0.84, 1.12), sh * grade);
+col = mix(col, col * vec3<f32>(1.06, 1.0, 0.86), hi * grade);
+let d = ori_screen_depth_m(ctx.uv);
+let f = smoothstep(25.0, 300.0, d) * (1.0 - step(2900.0, d)) * haze;
+col = mix(col, vec3<f32>(0.86, 0.82, 0.86), f * 0.4);
+out.color = vec4<f32>(col, 1.0);
+#end
+
 // ============================================================
 // PLAYER
 // ============================================================
@@ -1133,6 +1208,25 @@ out.geo = part(MonetFieldWall, len: 1400);
 event OnSpawned {
     SetDefaultPlayerControlsEnabled(true)
     SetCameraToFirstPerson()
+    SetScreenShader(Material.MonetPaint)
+    SetMaterialParameterNumber(Material.MonetPaint, 0, 1)
+    SetMaterialParameterNumber(Material.MonetPaint, 1, 0.5)
+    SetMaterialParameterNumber(Material.MonetPaint, 2, 0.5)
+    SetMaterialParameterNumber(Material.MonetPaint, 3, 1.6)
+    SetMaterialParameterNumber(Material.MonetPaint, 4, 7)
+    SetMaterialParameterNumber(Material.MonetPaint, 5, 4)
+    SetMaterialParameterNumber(Material.MonetPaint, 6, 0)
+    var PaintOn = true
+    forever {
+        if IsKeyPressedByThisPlayer(Key.P) {
+            PaintOn = !PaintOn
+            if PaintOn {
+                SetMaterialParameterNumber(Material.MonetPaint, 0, 1)
+            } else {
+                SetMaterialParameterNumber(Material.MonetPaint, 0, 0)
+            }
+        }
+    }
 }
 #end
 
@@ -1185,39 +1279,21 @@ object CypressT2 { model = "tree.MonetCypress" position = (5050, -1550, 0) }
 object CypressT3 { model = "tree.MonetCypress" position = (6900, -600, 0) }
 object RoundTreeT1 { model = "tree.MonetRoundTree" position = (3000, -1500, 0) }
 // ---- meadow: individual blades + flowers per region ----
-object BladesAN { model = "scatter.MeadowBladesA" position = (-1500, 1450, -300) size = (6000, 1900, 1200) }
-object BladesBN { model = "scatter.MeadowBladesB" position = (-1500, 1450, -300) size = (6000, 1900, 1200) }
-object BladesCN { model = "scatter.MeadowBladesC" position = (-1500, 1450, -300) size = (6000, 1900, 1200) }
 object DaisiesN { model = "scatter.MeadowDaisies" position = (-1500, 1450, -300) size = (6000, 1900, 1200) }
 object CosmosN { model = "scatter.MeadowCosmos" position = (-1500, 1450, -300) size = (6000, 1900, 1200) }
 object LavenderN { model = "scatter.MeadowLavender" position = (-1500, 1450, -300) size = (6000, 1900, 1200) }
-object BladesAS { model = "scatter.MeadowBladesA" position = (-1500, -1450, -300) size = (6000, 1900, 1200) }
-object BladesBS { model = "scatter.MeadowBladesB" position = (-1500, -1450, -300) size = (6000, 1900, 1200) }
-object BladesCS { model = "scatter.MeadowBladesC" position = (-1500, -1450, -300) size = (6000, 1900, 1200) }
 object DaisiesS { model = "scatter.MeadowDaisies" position = (-1500, -1450, -300) size = (6000, 1900, 1200) }
 object CosmosS { model = "scatter.MeadowCosmos" position = (-1500, -1450, -300) size = (6000, 1900, 1200) }
 object LavenderS { model = "scatter.MeadowLavender" position = (-1500, -1450, -300) size = (6000, 1900, 1200) }
-object BladesAVergeN { model = "scatter.MeadowBladesA" position = (100, 430, -300) size = (3600, 380, 1200) }
-object BladesBVergeN { model = "scatter.MeadowBladesB" position = (100, 430, -300) size = (3600, 380, 1200) }
-object BladesCVergeN { model = "scatter.MeadowBladesC" position = (100, 430, -300) size = (3600, 380, 1200) }
 object DaisiesVergeN { model = "scatter.MeadowDaisies" position = (100, 430, -300) size = (3600, 380, 1200) }
 object CosmosVergeN { model = "scatter.MeadowCosmos" position = (100, 430, -300) size = (3600, 380, 1200) }
 object LavenderVergeN { model = "scatter.MeadowLavender" position = (100, 430, -300) size = (3600, 380, 1200) }
-object BladesAVergeS { model = "scatter.MeadowBladesA" position = (100, -430, -300) size = (3600, 380, 1200) }
-object BladesBVergeS { model = "scatter.MeadowBladesB" position = (100, -430, -300) size = (3600, 380, 1200) }
-object BladesCVergeS { model = "scatter.MeadowBladesC" position = (100, -430, -300) size = (3600, 380, 1200) }
 object DaisiesVergeS { model = "scatter.MeadowDaisies" position = (100, -430, -300) size = (3600, 380, 1200) }
 object CosmosVergeS { model = "scatter.MeadowCosmos" position = (100, -430, -300) size = (3600, 380, 1200) }
 object LavenderVergeS { model = "scatter.MeadowLavender" position = (100, -430, -300) size = (3600, 380, 1200) }
-object BladesATownN { model = "scatter.MeadowBladesA" position = (5200, 1800, -300) size = (5200, 1300, 1200) }
-object BladesBTownN { model = "scatter.MeadowBladesB" position = (5200, 1800, -300) size = (5200, 1300, 1200) }
-object BladesCTownN { model = "scatter.MeadowBladesC" position = (5200, 1800, -300) size = (5200, 1300, 1200) }
 object DaisiesTownN { model = "scatter.MeadowDaisies" position = (5200, 1800, -300) size = (5200, 1300, 1200) }
 object CosmosTownN { model = "scatter.MeadowCosmos" position = (5200, 1800, -300) size = (5200, 1300, 1200) }
 object LavenderTownN { model = "scatter.MeadowLavender" position = (5200, 1800, -300) size = (5200, 1300, 1200) }
-object BladesATownS { model = "scatter.MeadowBladesA" position = (5200, -1800, -300) size = (5200, 1300, 1200) }
-object BladesBTownS { model = "scatter.MeadowBladesB" position = (5200, -1800, -300) size = (5200, 1300, 1200) }
-object BladesCTownS { model = "scatter.MeadowBladesC" position = (5200, -1800, -300) size = (5200, 1300, 1200) }
 object DaisiesTownS { model = "scatter.MeadowDaisies" position = (5200, -1800, -300) size = (5200, 1300, 1200) }
 object CosmosTownS { model = "scatter.MeadowCosmos" position = (5200, -1800, -300) size = (5200, 1300, 1200) }
 object LavenderTownS { model = "scatter.MeadowLavender" position = (5200, -1800, -300) size = (5200, 1300, 1200) }
