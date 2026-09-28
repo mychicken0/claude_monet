@@ -4,7 +4,7 @@
 
 #rules
 Monet medieval RPG art direction: stylized low-poly geometry + painterly base materials + warm sun / cool sky lighting + light fog. No heavy fullscreen oil-paint filter. Shadows lean lavender/blue, highlights cream/warm yellow.
-Reusable kit: Monet* textures are Codex-painted images (tint param); tree species share MonetLeafCard and recolor via leaf_tint; buildings are #meshpart kits with params (MonetHouseKit, MonetTowerKit, MonetBridgeKit, MonetFieldWall, MonetFlowerClump).
+Reusable kit: Monet* textures are Codex-painted images; surfaces are painted on the GPU by the MonetBrushSurface #shader (world-space brush dabs, warm sun / violet shade). Tree species share the painted MonetLeafCard and recolour via leaf_tint; buildings are #meshpart kits with params (MonetHouseKit, MonetChurchKit, MonetTowerKit, MonetBridgeKit, MonetFieldWall). Ground is the #terrain recipe MonetValley.
 #end
 
 // ============================================================
@@ -21,7 +21,7 @@ knob SetSkyLightColor = #8E98E0
 knob SetSkyLightSaturation = 1.6
 knob SetShadowOpacity = 0.75
 knob SetShadowBlurRadius = 3
-knob SetSkyboxCloudCoverage = 0.6
+knob SetSkyboxCloudCoverage = 0.25
 knob SetSkyboxHaze = 2
 knob SetSaturation = 1
 knob SetContrast = 1.05
@@ -30,11 +30,21 @@ knob SetSsrMode = Off
 section "Atmosphere"
 knob SetDistanceFogEnabled = 1
 knob SetFogColor = #D8D0E2
-knob SetFogStartDistance = 40
-knob SetFogEndDistance = 700
+knob SetFogStartDistance = 60
+knob SetFogEndDistance = 1500
 knob SetFogSkyboxAffect = 20
 knob SetWindStrength = 0.3
 knob SetTreeLodSwitchDistanceM = 30
+section "Meadow grass"
+knob SetGrassRootColor = #56683A
+knob SetGrassTipColor = #D2C47A
+knob SetGrassBrightnessVariationPercent = 140
+knob SetGrassSizeVariationPercent = 100
+knob SetGrassHeightMinCm = 18
+knob SetGrassHeightMaxCm = 70
+knob SetGrassWavePeriodCm = 900
+knob SetGrassWindStrengthCm = 5
+knob SetGrassSpacingCm = 22
 section "River"
 knob SetWaterEnabled = 1
 knob SetWaterSeaLevelCm = -50
@@ -45,7 +55,41 @@ knob SetWaterReflectionStrength = 1
 #end
 
 // ============================================================
-// PAINTERLY MATERIAL KIT (reusable; colour params are sliders)
+// TERRAIN: flat play corridor + town pad, rolling meadows, river,
+// a ring of downs and a hill for the distant town (all metres).
+// ============================================================
+#terrain MonetValley
+mound_height_m = 0
+gully_depth_m = 0
+landform_blend = max
+hill TownHill = center=(330,60), height=34, front=110, back=120, left=130, right=110, crown=0.35
+hill NorthDown = center=(90,270), height=26, front=170, back=170, left=160, right=150
+hill WestDown = center=(-260,120), height=20, front=140, back=150, left=120, right=140
+hill SouthDown = center=(-60,-250), height=24, front=160, back=160, left=170, right=160
+hill EastSouth = center=(260,-230), height=30, front=150, back=140, left=130, right=150
+ridge_path = 160, 140, -1400, 1300, -400, 1500, 600, 1400, 1500, 1100
+ridge_path = 160, 120, -1500, -1200, -300, -1400, 800, -1350, 1600, -1000
+mask Town = center=(68,0), radii=(56,32), fade=14
+mask Clear = center=(-25,0), radii=(75,11), fade=12, mask=Town
+detail Rolling = height=3.2, size=42, octaves=2, mode=billow, mask=Clear
+detail Fine = height=0.6, size=10, mode=billow, mask=Clear
+flatten_rect = 68, 0, 46, 26, 0, 14
+flatten_rect = -25, 0, 62, 9, 0, 14
+carve_path = width=7, depth=3.4, smooth=1, points=[(23,-700),(21,-250),(23,0),(24,250),(20,700)]
+#end
+
+#class MonetWorld
+event OnSpawned {
+    SetCameraFarDistanceM(3000)
+    var t = SpawnTerrainRecipe(100, Origin())
+    t.SetTerrainMaterial(Material.MonetGround)
+    t.SetTerrainGrassVisible(true)
+}
+#end
+display World : MonetWorld { visible = false }
+
+// ============================================================
+// PAINTED SURFACE TEXTURES (Codex oil paintings, bake sources for the GPU brush)
 // ============================================================
 #texture MonetPlasterProc
 tile_m = 3.0;
@@ -74,9 +118,9 @@ out.orm = orm(occlusion: 1.0, roughness: 0.8, metallic: 0.0);
 #texture MonetWindowDark
 tile_m = 1.0;
 let n = noise.fbm(uv * 4.0, octaves: 2, seed: 71);
-out.color = mix(color("#2F3A5A"), color("#4E5E86"), n);
+out.color = mix(color("#262A40"), color("#454A68"), n);
 out.normal = normal_from_height(n * 0.01, strength: 0.2);
-out.orm = orm(occlusion: 1.0, roughness: 0.35, metallic: 0.0);
+out.orm = orm(occlusion: 1.0, roughness: 0.65, metallic: 0.0);
 #end
 
 #texture MonetBark
@@ -87,26 +131,10 @@ out.normal = normal_from_height(s * 0.04, strength: 0.5);
 out.orm = orm(occlusion: 1.0, roughness: 0.9, metallic: 0.0);
 #end
 
-// Leaf-cluster card shared by every Monet tree species (recolour per species with leaf_tint).
-#texture MonetLeafCard
-mapping = uv;
-wrap = clamp;
-render_mode = cutout;
-size = 512;
-let t = image("projimg.monet_leaf_9212e2b2", uv, wrap: "clamp");
-out.color = t.rgb;
-out.alpha = t.a;
-out.normal = normal_from_height(dot(t.rgb, vec3(0.333, 0.333, 0.333)) * 0.03, strength: 0.3);
-out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
-#end
-
-// Colour variants: derive, don't duplicate texture code.
-// ---- Painted surfaces: Codex-generated Monet oil paintings (oriverse/textures/*.png, imported as project images) ----
-// Each is a world-space triplanar #texture; recolour with `tint` or a derived material.
 #texture MonetPlasterTex
 mapping = triplanar_world;
 tile_m = 3.0;
-size = 1024;
+size = 512;
 param tint = color("#FFF6EE");
 param desat = 0.5 range 0.0..1.0;
 let c = image("projimg.monet_plaster_06d44a3d", uv, wrap: "repeat").rgb * tint;
@@ -154,7 +182,7 @@ out.orm = orm(occlusion: 1.0, roughness: 0.95, metallic: 0.0);
 #texture MonetPathTex
 mapping = triplanar_world;
 tile_m = 3.0;
-size = 1024;
+size = 512;
 param tint = color("#FFFFFF");
 param desat = 0.3 range 0.0..1.0;
 let c = image("projimg.monet_path_cdec643e", uv, wrap: "repeat").rgb * tint;
@@ -163,20 +191,34 @@ out.color = mix(c, vec3(l, l, l), desat);
 out.normal = normal_from_height(l * 0.04, strength: 0.5);
 out.orm = orm(occlusion: 1.0, roughness: 0.9, metallic: 0.0);
 #end
-// ---- GPU Monet: brush-dab surface shader (world-space, distance-adaptive, warm-sun / cool-shade push) ----
-// param0 = metres per texture repeat, param1 = brush dab size (m) near the camera, param4..6 = RGB tint.
-material MonetPlaster { shader = "MonetBrushSurface" tex0 = "baked.MonetPlasterTex.color" param0 = 3.0 param1 = 0.07 }
-material MonetPlasterRose { shader = "MonetBrushSurface" tex0 = "baked.MonetPlasterTex.color" param0 = 3.0 param1 = 0.07 param4 = 1.0 param5 = 0.9 param6 = 0.88 }
-material MonetStone { shader = "MonetBrushSurface" tex0 = "baked.MonetStoneTex.color" param0 = 2.5 param1 = 0.06 }
-material MonetRoof { shader = "MonetBrushSurface" tex0 = "baked.MonetRoofTex.color" param0 = 2.0 param1 = 0.05 }
-material MonetGrass { shader = "MonetBrushSurface" tex0 = "baked.MonetGrassTex.color" param0 = 6.0 param1 = 0.09 }
-material MonetPath { shader = "MonetBrushSurface" tex0 = "baked.MonetPathTex.color" param0 = 3.0 param1 = 0.07 }
+
+// ============================================================
+// GPU MONET: brush-dab surface shader
+// params: 0 = metres per texture repeat, 1 = dab size (m) near the camera,
+//         2 = dab strength (0 = plain texture, 1 = full dabs), 3 = stroke angle (rad),
+//         4..6 = RGB tint.  World-space, so strokes never swim with the camera.
+// ============================================================
+material MonetPlaster { shader = "MonetBrushSurface" tex0 = "baked.MonetPlasterTex.color" param0 = 3.0 param1 = 0.05 param2 = 0.45 param3 = 1.5 }
+material MonetPlasterRose { shader = "MonetBrushSurface" tex0 = "baked.MonetPlasterTex.color" param0 = 3.0 param1 = 0.05 param2 = 0.45 param3 = 1.5 param4 = 1.0 param5 = 0.9 param6 = 0.88 }
+material MonetPlasterOchre { shader = "MonetBrushSurface" tex0 = "baked.MonetPlasterTex.color" param0 = 3.0 param1 = 0.05 param2 = 0.45 param3 = 1.5 param4 = 1.0 param5 = 0.95 param6 = 0.84 }
+material MonetStone { shader = "MonetBrushSurface" tex0 = "baked.MonetStoneTex.color" param0 = 2.5 param1 = 0.05 param2 = 0.5 param3 = 0.2 }
+material MonetRoof { shader = "MonetBrushSurface" tex0 = "baked.MonetRoofTex.color" param0 = 2.0 param1 = 0.05 param2 = 0.55 param3 = 0.3 }
+material MonetRoofDark { shader = "MonetBrushSurface" tex0 = "baked.MonetRoofTex.color" param0 = 2.0 param1 = 0.05 param2 = 0.55 param3 = 0.3 param4 = 0.85 param5 = 0.78 param6 = 0.82 }
+material MonetPath { shader = "MonetBrushSurface" tex0 = "baked.MonetPathTex.color" param0 = 3.0 param1 = 0.06 param2 = 0.6 }
+material MonetBarkMat { base = "MonetBark" }
+material MonetShutterBlue { base = "MonetWood" tint = "#B4BCD0" }
+material MonetShutterGreen { base = "MonetWood" tint = "#9FB89A" }
+material MonetTimber { base = "MonetWood" tint = "#6A5566" }
+material FlowerLeaf { base = "MonetPlasterProc" tint = "#8FA66A" }
+material FlowerPink { base = "MonetPlasterProc" tint = "#FF9FC4" }
+material FlowerRed { base = "MonetPlasterProc" tint = "#FF6A5A" }
+
 #shader MonetBrushSurface
 @module {
 fn mb_hash(x: f32, y: f32, s: f32) -> f32 {
     return fract(sin(x * 127.1 + y * 311.7 + s * 74.7) * 43758.5453);
 }
-fn mb_dab(p: vec2<f32>, s: f32, seed: f32) -> vec2<f32> {
+fn mb_dab(p: vec2<f32>, s: f32, seed: f32, base_ang: f32) -> vec2<f32> {
     let g = floor(p / s);
     var best = 1e9;
     var bestPt = p;
@@ -184,7 +226,7 @@ fn mb_dab(p: vec2<f32>, s: f32, seed: f32) -> vec2<f32> {
         for (var i: i32 = -1; i <= 1; i = i + 1) {
             let c = g + vec2<f32>(f32(i), f32(j));
             let ctr = (c + vec2<f32>(mb_hash(c.x, c.y, seed), mb_hash(c.y, c.x, seed + 1.0))) * s;
-            let ang = (mb_hash(c.x, c.y, seed + 2.0) - 0.5) * 1.2 + 0.6;
+            let ang = (mb_hash(c.x, c.y, seed + 2.0) - 0.5) * 0.9 + base_ang;
             let dir = vec2<f32>(cos(ang), sin(ang));
             let rel = p - ctr;
             let along = dot(rel, dir);
@@ -201,6 +243,8 @@ fn mb_dab(p: vec2<f32>, s: f32, seed: f32) -> vec2<f32> {
 }
 let tile = select(3.0, mat.params4[0].x, mat.params4[0].x > 0.0);
 let brush = select(0.06, mat.params4[0].y, mat.params4[0].y > 0.0);
+let strength = select(0.6, mat.params4[0].z, mat.params4[0].z > 0.0);
+let base_ang = select(0.6, mat.params4[0].w, mat.params4[0].w > 0.0);
 let tp = mat.params4[1].xyz;
 let tint = select(vec3<f32>(1.0), tp, (tp.x + tp.y + tp.z) > 0.0);
 let n = normalize(ctx.normal);
@@ -216,14 +260,15 @@ let lvl = clamp(log2(max(dist, 1.0) / 6.0), 0.0, 6.0);
 let l0 = floor(lvl);
 let fr = lvl - l0;
 let s0 = brush * exp2(l0);
-let q0 = mb_dab(p, s0, 3.0);
-let q1 = mb_dab(p, s0 * 2.0, 7.0);
+let q0 = mb_dab(p, s0, 3.0, base_ang);
+let q1 = mb_dab(p, s0 * 2.0, 7.0, base_ang);
 let uv = p / tile;
 let gx = dpdx(uv);
 let gy = dpdy(uv);
 let c0 = textureSampleGrad(tex0, tex_sampler, q0 / tile, gx, gy).rgb;
 let c1 = textureSampleGrad(tex0, tex_sampler, q1 / tile, gx, gy).rgb;
-var col = mix(c0, c1, fr) * tint * ctx.mesh_color.rgb;
+let cd = textureSampleGrad(tex0, tex_sampler, uv, gx, gy).rgb;
+var col = mix(cd, mix(c0, c1, fr), strength) * tint * ctx.mesh_color.rgb;
 let sunL = normalize(-u_camera.sun_direction.xyz);
 let warm = smoothstep(-0.1, 0.7, dot(n, sunL));
 col = col * mix(vec3<f32>(0.86, 0.86, 1.12), vec3<f32>(1.07, 1.0, 0.9), warm);
@@ -233,100 +278,84 @@ out.orm.g = 0.9;
 out.orm.b = 0.0;
 #end
 
-// ---- Painted distant backdrops (Codex, transparent sky) ----
-#texture BackdropCastleTex
-mapping = uv;
-wrap = clamp;
-render_mode = cutout;
-size = 1024;
-let t = image("projimg.backdrop_castle_19129797", uv, wrap: "clamp");
-out.color = t.rgb;
-out.alpha = t.a;
-out.normal = normal_from_height(0.0, strength: 0.1);
-out.orm = orm(occlusion: 1.0, roughness: 1.0, metallic: 0.0);
-#end
-#texture BackdropHillsTex
-mapping = uv;
-wrap = clamp;
-render_mode = cutout;
-size = 1024;
-let t = image("projimg.backdrop_hills_42ccb46a", uv, wrap: "clamp");
-out.color = t.rgb;
-out.alpha = t.a;
-out.normal = normal_from_height(0.0, strength: 0.1);
-out.orm = orm(occlusion: 1.0, roughness: 1.0, metallic: 0.0);
-#end
-#texture BackdropMountainsTex
-mapping = uv;
-wrap = clamp;
-render_mode = cutout;
-size = 1024;
-let t = image("projimg.backdrop_mountains_0dff8904", uv, wrap: "clamp");
-out.color = t.rgb;
-out.alpha = t.a;
-out.normal = normal_from_height(0.0, strength: 0.1);
-out.orm = orm(occlusion: 1.0, roughness: 1.0, metallic: 0.0);
-#end
-material BackdropCastle { base = "BackdropCastleTex" lighting = "unlit" }
-material BackdropHills { base = "BackdropHillsTex" lighting = "unlit" }
-material BackdropMountains { base = "BackdropMountainsTex" lighting = "unlit" }
-#mesh BackdropPanel
-out.geo = rotate_x(plane(width: 25000, height: 10000, material: "BackdropHills"), -90);
-#end
-material MonetPlasterOchre { shader = "MonetBrushSurface" tex0 = "baked.MonetPlasterTex.color" param0 = 3.0 param1 = 0.07 param4 = 1.0 param5 = 0.96 param6 = 0.86 }
-material MonetRoofDark { shader = "MonetBrushSurface" tex0 = "baked.MonetRoofTex.color" param0 = 2.0 param1 = 0.05 param4 = 0.85 param5 = 0.78 param6 = 0.82 }
-material MonetShutterBlue { base = "MonetWood" tint = "#B4BCD0" }
-
-// Screen pass: Kuwahara oil-paint abstraction (no time input -> no temporal swim),
-// lavender-shadow / cream-highlight grade, depth-based atmospheric haze.
-// params4[0]: x = paint amount, y = grade, z = haze, w = kernel step (px)
-material MonetPaint { shader = "MonetPaintPass" }
-#shader MonetPaintPass
-let amt = mat.params4[0].x;
-let grade = mat.params4[0].y;
-let haze = mat.params4[0].z;
-let px = vec2<f32>(max(mat.params4[0].w, 1.0)) / vec2<f32>(ctx.resolution);
-var m0 = vec3<f32>(0.0); var m1 = vec3<f32>(0.0); var m2 = vec3<f32>(0.0); var m3 = vec3<f32>(0.0);
-var q0 = vec3<f32>(0.0); var q1 = vec3<f32>(0.0); var q2 = vec3<f32>(0.0); var q3 = vec3<f32>(0.0);
-for (var j: i32 = -3; j <= 3; j = j + 1) {
-    for (var i: i32 = -3; i <= 3; i = i + 1) {
-        let c = ori_screen_color(ctx.uv + vec2<f32>(f32(i), f32(j)) * px).rgb;
-        let c2 = c * c;
-        let a0 = select(0.0, 1.0, i <= 0 && j <= 0);
-        let a1 = select(0.0, 1.0, i >= 0 && j <= 0);
-        let a2 = select(0.0, 1.0, i <= 0 && j >= 0);
-        let a3 = select(0.0, 1.0, i >= 0 && j >= 0);
-        m0 += c * a0; q0 += c2 * a0;
-        m1 += c * a1; q1 += c2 * a1;
-        m2 += c * a2; q2 += c2 * a2;
-        m3 += c * a3; q3 += c2 * a3;
-    }
+// Terrain: same brush, grass on the flats, painted earth on slopes.
+material MonetGround { shader = "MonetBrushTerrain" tex0 = "baked.MonetGrassTex.color" tex1 = "baked.MonetPathTex.color" }
+#shader MonetBrushTerrain
+@module {
+fn mt_hash(x: f32, y: f32, s: f32) -> f32 {
+    return fract(sin(x * 127.1 + y * 311.7 + s * 74.7) * 43758.5453);
 }
-let n = 16.0;
-let e0 = m0 / n; let e1 = m1 / n; let e2 = m2 / n; let e3 = m3 / n;
-let v0 = abs(q0 / n - e0 * e0); let v1 = abs(q1 / n - e1 * e1); let v2 = abs(q2 / n - e2 * e2); let v3 = abs(q3 / n - e3 * e3);
-let s0 = v0.r + v0.g + v0.b; let s1 = v1.r + v1.g + v1.b; let s2 = v2.r + v2.g + v2.b; let s3 = v3.r + v3.g + v3.b;
-let w0 = 1.0 / pow(s0 + 0.0004, 2.0); let w1 = 1.0 / pow(s1 + 0.0004, 2.0); let w2 = 1.0 / pow(s2 + 0.0004, 2.0); let w3 = 1.0 / pow(s3 + 0.0004, 2.0);
-let paint = (e0 * w0 + e1 * w1 + e2 * w2 + e3 * w3) / (w0 + w1 + w2 + w3);
-var col = mix(ctx.color.rgb, paint, amt);
-let l = dot(col, vec3<f32>(0.2126, 0.7152, 0.0722));
-let sh = 1.0 - smoothstep(0.05, 0.45, l);
-let hi = smoothstep(0.55, 0.95, l);
-col = mix(col, col * vec3<f32>(0.86, 0.82, 1.14), sh * grade);
-col = mix(col, col * vec3<f32>(1.06, 1.0, 0.86), hi * grade);
-let d = ori_screen_depth_m(ctx.uv);
-let f = smoothstep(25.0, 300.0, d) * (1.0 - step(3000.0, d)) * haze;
-col = mix(col, vec3<f32>(0.80, 0.78, 0.90), f * 0.45);
-out.color = vec4<f32>(col, 1.0);
+fn mt_dab(p: vec2<f32>, s: f32, seed: f32) -> vec2<f32> {
+    let g = floor(p / s);
+    var best = 1e9;
+    var bestPt = p;
+    for (var j: i32 = -1; j <= 1; j = j + 1) {
+        for (var i: i32 = -1; i <= 1; i = i + 1) {
+            let c = g + vec2<f32>(f32(i), f32(j));
+            let ctr = (c + vec2<f32>(mt_hash(c.x, c.y, seed), mt_hash(c.y, c.x, seed + 1.0))) * s;
+            let ang = (mt_hash(c.x, c.y, seed + 2.0) - 0.5) * 1.2 + 0.6;
+            let dir = vec2<f32>(cos(ang), sin(ang));
+            let rel = p - ctr;
+            let along = dot(rel, dir);
+            let across = rel - dir * along;
+            let d = length(across) + abs(along) * 0.35;
+            if (d < best) {
+                best = d;
+                bestPt = ctr + dir * along * 0.7;
+            }
+        }
+    }
+    return bestPt;
+}
+}
+let wp = ctx.world_pos;
+let n = normalize(ctx.normal);
+let p = wp.xz;
+let dist = length(u_camera.camera_position - wp);
+let lvl = clamp(log2(max(dist, 1.0) / 6.0), 0.0, 7.0);
+let l0 = floor(lvl);
+let fr = lvl - l0;
+let s0 = 0.08 * exp2(l0);
+let q0 = mt_dab(p, s0, 3.0);
+let q1 = mt_dab(p, s0 * 2.0, 7.0);
+let tile = 6.0;
+let uv = p / tile;
+let gx = dpdx(uv);
+let gy = dpdy(uv);
+let g0 = textureSampleGrad(tex0, tex_sampler, q0 / tile, gx, gy).rgb;
+let g1 = textureSampleGrad(tex0, tex_sampler, q1 / tile, gx, gy).rgb;
+let gd = textureSampleGrad(tex0, tex_sampler, uv, gx, gy).rgb;
+let e0 = textureSampleGrad(tex1, tex_sampler, q0 / 3.0, gx * 2.0, gy * 2.0).rgb;
+let grass = mix(gd, mix(g0, g1, fr), 0.7);
+let steep = smoothstep(0.82, 0.62, n.y);
+var col = mix(grass, e0 * vec3<f32>(1.0, 0.92, 0.85), steep);
+let far = smoothstep(80.0, 600.0, dist);
+col = mix(col, col * vec3<f32>(0.92, 0.95, 1.08), far);
+let sunL = normalize(-u_camera.sun_direction.xyz);
+let warm = smoothstep(-0.1, 0.7, dot(n, sunL));
+col = col * mix(vec3<f32>(0.86, 0.86, 1.12), vec3<f32>(1.07, 1.0, 0.9), warm);
+out.base_color = vec4<f32>(col, 1.0);
+out.orm.r = 1.0;
+out.orm.g = 0.95;
+out.orm.b = 0.0;
 #end
-material FlowerLeaf { base = "MonetPlasterProc" tint = "#8FA66A" }
-material FlowerPink { base = "MonetPlasterProc" tint = "#FF9FC4" }
-material FlowerViolet { base = "MonetPlasterProc" tint = "#B79CFF" }
-material FlowerRed { base = "MonetPlasterProc" tint = "#FF6A5A" }
 
 // ============================================================
 // TREE KIT (reusable species; duplicate + change seed/tint for variants)
+// Leaves are Codex-painted cards (MonetLeafCard); recolour per species with leaf_tint.
 // ============================================================
+#texture MonetLeafCard
+mapping = uv;
+wrap = clamp;
+render_mode = cutout;
+size = 512;
+let t = image("projimg.monet_leaf_9212e2b2", uv, wrap: "clamp");
+out.color = t.rgb;
+out.alpha = t.a;
+out.normal = normal_from_height(dot(t.rgb, vec3(0.333, 0.333, 0.333)) * 0.03, strength: 0.3);
+out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
+#end
+
 #tree MonetRoundTree
   seed: 7
   mode: colonize
@@ -399,20 +428,240 @@ material FlowerRed { base = "MonetPlasterProc" tint = "#FF6A5A" }
 #end
 
 // ============================================================
+// PAINTED SKY + DISTANT SET (Codex sprites, transparent, placed piece by piece
+// at different depths so they parallax instead of one flat backdrop)
+// ============================================================
+#texture SkyCloudATex
+mapping = uv;
+wrap = clamp;
+render_mode = cutout_twosided;
+size = 512;
+let t = image("projimg.cloud_a_99f518cb", uv, wrap: "clamp");
+out.color = t.rgb;
+out.alpha = t.a;
+out.normal = normal_from_height(0.0, strength: 0.1);
+out.orm = orm(occlusion: 1.0, roughness: 1.0, metallic: 0.0);
+#end
+material SkyCloudA { base = "SkyCloudATex" lighting = "unlit" }
+#texture SkyCloudBTex
+mapping = uv;
+wrap = clamp;
+render_mode = cutout_twosided;
+size = 512;
+let t = image("projimg.cloud_b_c4ec62cf", uv, wrap: "clamp");
+out.color = t.rgb;
+out.alpha = t.a;
+out.normal = normal_from_height(0.0, strength: 0.1);
+out.orm = orm(occlusion: 1.0, roughness: 1.0, metallic: 0.0);
+#end
+material SkyCloudB { base = "SkyCloudBTex" lighting = "unlit" }
+#texture SkyCloudCTex
+mapping = uv;
+wrap = clamp;
+render_mode = cutout_twosided;
+size = 512;
+let t = image("projimg.cloud_c_33c8d6b2", uv, wrap: "clamp");
+out.color = t.rgb;
+out.alpha = t.a;
+out.normal = normal_from_height(0.0, strength: 0.1);
+out.orm = orm(occlusion: 1.0, roughness: 1.0, metallic: 0.0);
+#end
+material SkyCloudC { base = "SkyCloudCTex" lighting = "unlit" }
+#texture BdCastleTex
+mapping = uv;
+wrap = clamp;
+render_mode = cutout_twosided;
+size = 512;
+let t = image("projimg.bd_castle_0deee20e", uv, wrap: "clamp");
+out.color = t.rgb;
+out.alpha = t.a;
+out.normal = normal_from_height(0.0, strength: 0.1);
+out.orm = orm(occlusion: 1.0, roughness: 1.0, metallic: 0.0);
+#end
+material BdCastle { base = "BdCastleTex" lighting = "unlit" }
+#texture BdCathedralTex
+mapping = uv;
+wrap = clamp;
+render_mode = cutout_twosided;
+size = 512;
+let t = image("projimg.bd_cathedral_67dddab3", uv, wrap: "clamp");
+out.color = t.rgb;
+out.alpha = t.a;
+out.normal = normal_from_height(0.0, strength: 0.1);
+out.orm = orm(occlusion: 1.0, roughness: 1.0, metallic: 0.0);
+#end
+material BdCathedral { base = "BdCathedralTex" lighting = "unlit" }
+#texture BdRidgeTex
+mapping = uv;
+wrap = clamp;
+render_mode = cutout_twosided;
+size = 512;
+let t = image("projimg.bd_ridge_982f72ab", uv, wrap: "clamp");
+out.color = t.rgb;
+out.alpha = t.a;
+out.normal = normal_from_height(0.0, strength: 0.1);
+out.orm = orm(occlusion: 1.0, roughness: 1.0, metallic: 0.0);
+#end
+material BdRidge { base = "BdRidgeTex" lighting = "unlit" }
+#texture BdTreelineTex
+mapping = uv;
+wrap = clamp;
+render_mode = cutout_twosided;
+size = 512;
+let t = image("projimg.bd_treeline_9dd38ffc", uv, wrap: "clamp");
+out.color = t.rgb;
+out.alpha = t.a;
+out.normal = normal_from_height(0.0, strength: 0.1);
+out.orm = orm(occlusion: 1.0, roughness: 1.0, metallic: 0.0);
+#end
+material BdTreeline { base = "BdTreelineTex" lighting = "unlit" }
+#texture BdWindmillTex
+mapping = uv;
+wrap = clamp;
+render_mode = cutout_twosided;
+size = 512;
+let t = image("projimg.bd_windmill_8654870f", uv, wrap: "clamp");
+out.color = t.rgb;
+out.alpha = t.a;
+out.normal = normal_from_height(0.0, strength: 0.1);
+out.orm = orm(occlusion: 1.0, roughness: 1.0, metallic: 0.0);
+#end
+material BdWindmill { base = "BdWindmillTex" lighting = "unlit" }
+#mesh CloudCard
+out.geo = rotate_x(plane(width: 26000, height: 17300, material: "SkyCloudA"), -90);
+#end
+#mesh CloudStreak
+out.geo = rotate_x(plane(width: 34000, height: 11000, material: "SkyCloudA"), -90);
+#end
+#mesh CastleCard
+out.geo = rotate_x(plane(width: 5200, height: 3470, material: "SkyCloudA"), -90);
+#end
+#mesh CathedralCard
+out.geo = rotate_x(plane(width: 6000, height: 9000, material: "SkyCloudA"), -90);
+#end
+#mesh RidgeCard
+out.geo = rotate_x(plane(width: 42000, height: 15750, material: "SkyCloudA"), -90);
+#end
+#mesh TreelineCard
+out.geo = rotate_x(plane(width: 8000, height: 3000, material: "SkyCloudA"), -90);
+#end
+#mesh WindmillCard
+out.geo = rotate_x(plane(width: 2400, height: 2400, material: "SkyCloudA"), -90);
+#end
+#texture FlowerCardPinkTex
+mapping = uv;
+wrap = clamp;
+render_mode = cutout_twosided;
+size = 512;
+let t = image("projimg.flower_pink_81404199", uv, wrap: "clamp");
+out.color = t.rgb;
+out.alpha = t.a;
+out.normal = normal_from_height(0.0, strength: 0.1);
+out.orm = orm(occlusion: 1.0, roughness: 0.9, metallic: 0.0);
+#end
+
+#texture FlowerCardRedTex
+mapping = uv;
+wrap = clamp;
+render_mode = cutout_twosided;
+size = 512;
+let t = image("projimg.flower_red_077ebc38", uv, wrap: "clamp");
+out.color = t.rgb;
+out.alpha = t.a;
+out.normal = normal_from_height(0.0, strength: 0.1);
+out.orm = orm(occlusion: 1.0, roughness: 0.9, metallic: 0.0);
+#end
+
+material FlowerCardPink { base = "FlowerCardPinkTex" }
+material FlowerCardRed { base = "FlowerCardRedTex" }
+#meshpart MonetFlowerCard
+param s = 70;
+param mat = "FlowerCardPink";
+let a = rotate_x(plane(width: s, height: s, material: mat), -90);
+out.geo = merge(translate(a, (0, 0, s * 0.5 - 6)), translate(rotate_z(a, 90), (0, 0, s * 0.5 - 6)));
+#end
+#mesh FlowerPinkCard
+out.geo = part(MonetFlowerCard, mat: "FlowerCardPink");
+#end
+#mesh FlowerRedCard
+out.geo = part(MonetFlowerCard, s: 60, mat: "FlowerCardRed");
+#end
+#scatter FlowersPink
+  model: "mesh.FlowerPinkCard"
+  seed: 1
+  spacing: 110
+  density_pct: 45
+  scale_min_pct: 70
+  scale_max_pct: 140
+  val_jitter_pct: 15
+#end
+#scatter FlowersRed
+  model: "mesh.FlowerRedCard"
+  seed: 3
+  spacing: 170
+  density_pct: 35
+  scale_min_pct: 70
+  scale_max_pct: 130
+  val_jitter_pct: 15
+#end
+
+// ============================================================
 // BUILDING KIT (#meshpart = reusable; #mesh = one tuned variant)
 // ============================================================
+// Window facing -Y: stone surround + lintel + sill, mullions, louvred shutters,
+// optional flower box.
 #meshpart MonetWindow
 param ww = 80;
 param wh = 110;
 param shutter = "MonetWood";
+param frame = "MonetStone";
+param flowers = 0;
+param bloom = "FlowerPink";
 let glass = box_at(size: (ww, 8, wh), bottom_center: (0, 0, 0), material: "MonetWindowDark");
-let sl = box_at(size: (ww * 0.5, 6, wh), bottom_center: (0 - ww * 0.78, -3, 0), material: shutter);
-let sr = box_at(size: (ww * 0.5, 6, wh), bottom_center: (ww * 0.78, -3, 0), material: shutter);
-let sill = box_at(size: (ww + 24, 16, 8), bottom_center: (0, -5, -8), material: "MonetStone");
-out.geo = merge(glass, sl, sr, sill);
+let mull = merge(
+    box_at(size: (6, 6, wh), bottom_center: (0, -6, 0), material: shutter),
+    box_at(size: (ww, 6, 6), bottom_center: (0, -6, wh * 0.58), material: shutter)
+);
+let fr = merge(
+    box_at(size: (14, 14, wh + 10), bottom_center: (0 - ww * 0.5 - 7, -4, -5), material: frame),
+    box_at(size: (14, 14, wh + 10), bottom_center: (ww * 0.5 + 7, -4, -5), material: frame),
+    box_at(size: (ww + 44, 18, 20), bottom_center: (0, -6, wh + 2), bevel: 2, material: frame),
+    box_at(size: (ww + 34, 22, 9), bottom_center: (0, -9, -12), bevel: 2, material: frame)
+);
+let panel = box_at(size: (ww * 0.5, 5, wh), bottom_center: (0, -3, 0), material: shutter);
+let slat = box_at(size: (ww * 0.5 - 8, 3, 4), bottom_center: (0, -7, 10), material: shutter);
+let shutter1 = merge(panel, array(slat, count: 6, offset: (0, 0, wh / 6.5)));
+let shutters = merge(translate(shutter1, (0 - ww * 0.75 - 14, 0, 0)), translate(shutter1, (ww * 0.75 + 14, 0, 0)));
+var g = merge(glass, mull, fr, shutters);
+if flowers > 0 {
+    let fbox = box_at(size: (ww + 16, 26, 22), bottom_center: (0, -24, -34), material: shutter);
+    let leaf = flat_shade(scale(polyhedron(kind: "ico", radius: 14, material: "FlowerLeaf"), (1.5, 1.0, 0.8)));
+    let bl = polyhedron(kind: "octa", radius: 6, material: bloom);
+    let leaves = copy_to_points(leaf, points: [(0 - ww * 0.35, -26, -12), (0, -28, -10), (ww * 0.35, -26, -12)]);
+    let blooms = copy_to_points(bl, points: [(0 - ww * 0.42, -32, -2), (0 - ww * 0.2, -36, 0), (0, -32, 2), (ww * 0.2, -35, 0), (ww * 0.42, -31, -3), (0 - ww * 0.1, -24, 4), (ww * 0.3, -22, 3)]);
+    g = merge(g, fbox, leaves, blooms);
+}
+out.geo = g;
 #end
 
-// Front (windows) faces -Y, door on the -X gable end.
+// Plank door facing -Y with stone surround, lintel and a step.
+#meshpart MonetDoor
+param dw = 110;
+param dh = 215;
+param wood = "MonetWood";
+let leaf = box_at(size: (dw, 10, dh), bottom_center: (0, -1, 0), material: wood);
+let battens = array(box_at(size: (5, 4, dh - 12), bottom_center: (0 - dw * 0.5 + dw * 0.2, -7, 6), material: wood), count: 4, offset: (dw * 0.2, 0, 0));
+let surround = merge(
+    box_at(size: (20, 16, dh + 10), bottom_center: (0 - dw * 0.5 - 10, -5, 0), material: "MonetStone"),
+    box_at(size: (20, 16, dh + 10), bottom_center: (dw * 0.5 + 10, -5, 0), material: "MonetStone"),
+    box_at(size: (dw + 60, 20, 26), bottom_center: (0, -6, dh + 4), bevel: 3, material: "MonetStone")
+);
+let step = box_at(size: (dw + 70, 55, 16), bottom_center: (0, -30, 0), bevel: 2, material: "MonetStone");
+out.geo = merge(leaf, battens, surround, step);
+#end
+
+// House: windows/front door face -Y. Stone plinth, quoins, string courses,
+// optional half-timbering, flower boxes, dormer, capped chimney, ridge tiles.
 #meshpart MonetHouseKit
 param w = 640;
 param d = 500;
@@ -426,28 +675,80 @@ param seed = 1;
 param wall_mat = "MonetPlaster";
 param roof_mat = "MonetRoof";
 param shutter_mat = "MonetWood";
+param timber = 0;
+param dormer = 1;
+param flowers = 1;
+param bloom = "FlowerPink";
 let hw = floors * fh;
-let plinth = box_at(size: (w + 16, d + 16, 70), bottom_center: (0, 0, 0), bevel: 3, material: "MonetStone");
-let walls = box_at(size: (w, d, hw), bottom_center: (0, 0, 0), bevel: 3, material: wall_mat);
-let quoins = merge(
-    box_at(size: (34, 34, hw), bottom_center: (0 - w * 0.5, 0 - d * 0.5, 0), material: "MonetStone"),
-    box_at(size: (34, 34, hw), bottom_center: (w * 0.5, 0 - d * 0.5, 0), material: "MonetStone"),
-    box_at(size: (34, 34, hw), bottom_center: (0 - w * 0.5, d * 0.5, 0), material: "MonetStone"),
-    box_at(size: (34, 34, hw), bottom_center: (w * 0.5, d * 0.5, 0), material: "MonetStone")
-);
 let sp = w / cols;
-let win = part(MonetWindow, shutter: shutter_mat);
-let front = translate(grid_array(win, count: (cols, 1, floors), offset: (sp, 0, fh)), (0 - (cols - 1) * sp * 0.5, 0 - d * 0.5, fh * 0.38));
-let back = rotate_z(front, 180, pivot: (0, 0, 0));
-let door = merge(
-    box_at(size: (14, 115, 215), bottom_center: (0 - w * 0.5 - 3, 0, 0), material: shutter_mat),
-    box_at(size: (22, 150, 22), bottom_center: (0 - w * 0.5 - 4, 0, 215), material: "MonetStone")
+let mid = floor(cols / 2);
+let plinth = box_at(size: (w + 16, d + 16, 60), bottom_center: (0, 0, -40), bevel: 3, material: "MonetStone");
+let walls = box_at(size: (w, d, hw), bottom_center: (0, 0, 0), bevel: 3, material: wall_mat);
+let qa = box_at(size: (46, 46, 30), bottom_center: (0, 0, 0), material: "MonetStone");
+let qb = box_at(size: (34, 34, 30), bottom_center: (0, 0, 0), material: "MonetStone");
+let quoin = array_pattern(qa, qb, count: floor(hw / 32), offset: (0, 0, 32));
+let quoins = merge(
+    translate(quoin, (0 - w * 0.5, 0 - d * 0.5, 0)),
+    translate(quoin, (w * 0.5, 0 - d * 0.5, 0)),
+    translate(quoin, (0 - w * 0.5, d * 0.5, 0)),
+    translate(quoin, (w * 0.5, d * 0.5, 0))
 );
+var trim = box_at(size: (w + 22, d + 22, 20), bottom_center: (0, 0, hw - 20), bevel: 2, material: "MonetStone");
+for f in 1..floors {
+    trim = merge(trim, box_at(size: (w + 12, d + 12, 14), bottom_center: (0, 0, f * fh - 7), material: "MonetStone"));
+}
+var fac = empty();
+for f in 0..floors {
+    for c in 0..cols {
+        let x = (c - (cols - 1) * 0.5) * sp;
+        if (f == 0) * (c == mid) > 0 {
+            fac = merge(fac, translate(part(MonetDoor, wood: shutter_mat), (x, 0 - d * 0.5, 0)));
+        } else {
+            let fl = (hash(f * 7 + c, seed: seed) < 0.55) * flowers * (f > 0);
+            fac = merge(fac, translate(part(MonetWindow, shutter: shutter_mat, flowers: fl, bloom: bloom), (x, 0 - d * 0.5, f * fh + fh * 0.33)));
+        }
+    }
+}
+var tim = empty();
+if timber > 0 {
+    for f in 1..floors {
+        let z0 = f * fh;
+        tim = merge(tim, box_at(size: (w, 12, 18), bottom_center: (0, 0 - d * 0.5 - 4, z0 + 6), material: "MonetTimber"));
+        tim = merge(tim, box_at(size: (w, 12, 16), bottom_center: (0, 0 - d * 0.5 - 4, z0 + fh - 22), material: "MonetTimber"));
+        for k in 0..cols + 1 {
+            let xk = (k - cols * 0.5) * sp;
+            tim = merge(tim, box_at(size: (16, 12, fh - 20), bottom_center: (xk, 0 - d * 0.5 - 4, z0 + 6), material: "MonetTimber"));
+            if k < cols {
+                tim = merge(tim, beam_between(start: (xk + 10, 0 - d * 0.5 - 6, z0 + 24), end: (xk + sp * 0.22, 0 - d * 0.5 - 6, z0 + fh * 0.3), cross_width: 11, cross_height: 11, material: "MonetTimber"));
+            }
+        }
+    }
+}
+let front = merge(fac, tim);
+let back = rotate_z(front, 180, pivot: (0, 0, 0));
+let side_win = translate(rotate_z(part(MonetWindow, shutter: shutter_mat), -90, pivot: (0, 0, 0)), (0 - w * 0.5, 0, fh + fh * 0.33));
 let gable = hull(box_at(size: (w, d, 2), bottom_center: (0, 0, hw)), box_at(size: (w, 2, 2), bottom_center: (0, 0, hw + roof_h - 8)), material: wall_mat);
 let roof = gable_roof(size: (w, d, 20), bottom_center: (0, 0, hw), roof_height: roof_h, overhang: 35, ridge_axis: "x", material: roof_mat);
-let roof2 = rotate_z(jitter(roof, amount: 3, seed: seed), roof_twist);
-let chimney = box_at(size: (60, 60, roof_h + 120), bottom_center: (w * 0.28, d * 0.18, hw), bevel: 2, material: "MonetStone");
-out.geo = shear(merge(plinth, walls, quoins, front, back, door, gable, roof2, chimney), x_per_z: lean);
+let ridge = box_at(size: (w + 70, 30, 24), bottom_center: (0, 0, hw + roof_h + 4), bevel: 4, material: "MonetRoofDark");
+var top = merge(jitter(roof, amount: 3, seed: seed), ridge);
+if dormer > 0 {
+    let dx = (hash(seed, seed: 5) - 0.5) * w * 0.4;
+    let dy = 0 - d * 0.3;
+    let dz = hw + roof_h * 0.08;
+    let dbody = box_at(size: (130, 120, 130), bottom_center: (dx, dy + 40, dz), material: wall_mat);
+    let droof = gable_roof(size: (130, 140, 12), bottom_center: (dx, dy + 30, dz + 130), roof_height: 70, overhang: 16, ridge_axis: "y", material: roof_mat);
+    let dwin = translate(part(MonetWindow, ww: 56, wh: 72, shutter: shutter_mat), (dx, dy - 20, dz + 28));
+    top = merge(top, dbody, droof, dwin);
+}
+let top2 = rotate_z(top, roof_twist);
+let cx = w * 0.3;
+let chimney = merge(
+    box_at(size: (64, 64, roof_h + 140), bottom_center: (cx, d * 0.18, hw), bevel: 2, material: "MonetStone"),
+    box_at(size: (84, 84, 16), bottom_center: (cx, d * 0.18, hw + roof_h + 140), bevel: 2, material: "MonetStone"),
+    cylinder_at(radius: 11, height: 34, segments: 6, bottom_center: (cx - 14, d * 0.18, hw + roof_h + 156), material: "MonetRoofDark"),
+    cylinder_at(radius: 11, height: 26, segments: 6, bottom_center: (cx + 16, d * 0.18 + 6, hw + roof_h + 156), material: "MonetRoofDark")
+);
+out.geo = shear(merge(plinth, walls, quoins, trim, front, back, side_win, gable, top2, chimney), x_per_z: lean);
 #end
 
 #meshpart MonetTowerKit
@@ -456,15 +757,45 @@ param h = 1200;
 param roof_h = 520;
 param sides = 10;
 param roof_mat = "MonetRoof";
-let body = cylinder_at(radius: r, height: h, segments: sides, bottom_center: (0, 0, 0), material: "MonetStone");
+let body = cylinder_at(radius: r, height: h, segments: sides, bottom_center: (0, 0, -60), material: "MonetStone");
 let cornice = cylinder_at(radius: r + 25, height: 45, segments: sides, bottom_center: (0, 0, h - 45), material: "MonetStone");
+let corbel = cylinder_at(r_bot: r, r_top: r + 25, height: 40, segments: sides, bottom_center: (0, 0, h - 85), material: "MonetStone");
 let roof = cylinder_at(r_bot: r + 50, r_top: 0, height: roof_h, segments: sides, bottom_center: (0, 0, h), material: roof_mat);
+let finial = cylinder_at(radius: 6, height: 90, segments: 5, bottom_center: (0, 0, h + roof_h - 10), material: "MonetTimber");
 let slit = box_at(size: (24, 24, 110), bottom_center: (0, 0, 0), material: "MonetWindowDark");
 let slits = merge(
     radial_array(slit, count: 4, center: (0, 0, h * 0.62), radius: r - 6, axis: (0, 0, 1), rotate: "yes"),
     radial_array(slit, count: 3, center: (0, 0, h * 0.3), radius: r - 6, axis: (0, 0, 1), rotate: "yes")
 );
-out.geo = shear(merge(body, cornice, roof, slits), x_per_z: 0.006);
+out.geo = shear(merge(body, corbel, cornice, roof, finial, slits), x_per_z: 0.006);
+#end
+
+// Church: nave + apse + bell tower with spire (distant town landmark).
+#meshpart MonetChurchKit
+param len = 1600;
+param wid = 700;
+param nh = 900;
+let nave = box_at(size: (len, wid, nh), bottom_center: (0, 0, -80), material: "MonetPlasterOchre");
+let buttress = box_at(size: (60, 90, nh - 150), bottom_center: (0, 0, -80), material: "MonetStone");
+let buttresses = merge(
+    translate(array(buttress, count: 5, offset: (len / 5, 0, 0)), (0 - len * 0.4, 0 - wid * 0.5 - 40, 0)),
+    translate(array(buttress, count: 5, offset: (len / 5, 0, 0)), (0 - len * 0.4, wid * 0.5 + 40, 0))
+);
+let tall_win = box_at(size: (70, 8, 280), bottom_center: (0, 0, 0), material: "MonetWindowDark");
+let wins = translate(array(tall_win, count: 4, offset: (len / 5, 0, 0)), (0 - len * 0.3, 0 - wid * 0.5 - 2, nh * 0.35));
+let roof = gable_roof(size: (len, wid, 20), bottom_center: (0, 0, nh - 80), roof_height: 460, overhang: 40, ridge_axis: "x", material: "MonetRoofDark");
+let apse = cylinder_at(radius: wid * 0.5, height: nh * 0.8, segments: 10, bottom_center: (len * 0.5, 0, -80), material: "MonetPlasterOchre");
+let apse_roof = cylinder_at(r_bot: wid * 0.5 + 30, r_top: 0, height: 320, segments: 10, bottom_center: (len * 0.5, 0, nh * 0.8 - 80), material: "MonetRoofDark");
+let tx = 0 - len * 0.5 - 180;
+let tower = box_at(size: (440, 440, 2300), bottom_center: (tx, 0, -80), material: "MonetStone");
+let belfry = merge(
+    box_at(size: (90, 460, 200), bottom_center: (tx, 0, 1900), material: "MonetWindowDark"),
+    box_at(size: (460, 90, 200), bottom_center: (tx, 0, 1900), material: "MonetWindowDark")
+);
+let spire = cylinder_at(r_bot: 270, r_top: 0, height: 1200, segments: 8, bottom_center: (tx, 0, 2220), material: "MonetRoofDark");
+let rose = rotate_y(cylinder_at(radius: 110, height: 10, segments: 12, bottom_center: (0, 0, 0), material: "MonetWindowDark"), 90);
+let roses = translate(rose, (0 - len * 0.5 - 2, 0, nh * 0.6));
+out.geo = merge(nave, buttresses, wins, rotate_z(wins, 180, pivot: (0, 0, 0)), roof, apse, apse_roof, tower, belfry, spire, roses);
 #end
 
 // Hump bridge centred on its origin; local z 0 = bank level, base = riverbed.
@@ -474,7 +805,7 @@ param width = 480;
 param rise = 150;
 param ramp = 260;
 param water_half = 300;
-param base = -300;
+param base = -360;
 let top = rise;
 let mid_half = half - ramp;
 let deck = box_bounds(min: (0 - mid_half, 0 - width * 0.5, top - 50), max: (mid_half, width * 0.5, top), material: "MonetPath");
@@ -505,77 +836,51 @@ param len = 800;
 param h = 100;
 param t = 50;
 param seed = 3;
-let body = tessellate(box_at(size: (len, t, h), bottom_center: (0, 0, 0), material: "MonetStone"), level: 2);
-out.geo = noise_displace(body, amount: 6, scale: 90, seed: seed);
-#end
-
-#meshpart MonetFlowerClump
-param bloom = "FlowerPink";
-let mound = scale(polyhedron(kind: "ico", radius: 28, material: "FlowerLeaf"), (1.3, 1.1, 0.55));
-let blossom = polyhedron(kind: "octa", radius: 7, material: bloom);
-let blooms = copy_to_points(blossom, points: [(10, 5, 20), (-12, 8, 18), (4, -12, 19), (-6, -4, 24), (18, -8, 14), (-20, -6, 12), (0, 14, 16)]);
-out.geo = flat_shade(merge(mound, blooms));
+let body = tessellate(box_at(size: (len, t, h + 50), bottom_center: (0, 0, -50), material: "MonetStone"), level: 2);
+let cap = tessellate(box_at(size: (len + 10, t + 14, 16), bottom_center: (0, 0, h), material: "MonetStone"), level: 1);
+out.geo = noise_displace(merge(body, cap), amount: 7, scale: 70, seed: seed);
 #end
 
 // ---- tuned variants ----
 #mesh HouseA
-out.geo = part(MonetHouseKit, w: 700, d: 520, floors: 2, cols: 3, seed: 1);
+sim_box(min: (-380, -300, 0), max: (380, 300, 1000));
+anchor(mode: "origin");
+out.geo = part(MonetHouseKit, w: 700, d: 520, floors: 2, cols: 3, seed: 1, bloom: "FlowerRed");
 #end
 #mesh HouseB
-out.geo = part(MonetHouseKit, w: 520, d: 480, floors: 3, cols: 2, roof_h: 200, lean: -0.01, roof_twist: -1.5, seed: 4, wall_mat: "MonetPlasterRose", roof_mat: "MonetRoofDark", shutter_mat: "MonetShutterBlue");
+sim_box(min: (-290, -270, 0), max: (290, 270, 1200));
+anchor(mode: "origin");
+out.geo = part(MonetHouseKit, w: 520, d: 480, floors: 3, cols: 3, roof_h: 200, lean: -0.01, roof_twist: -1.5, seed: 4, timber: 1, wall_mat: "MonetPlasterRose", roof_mat: "MonetRoofDark", shutter_mat: "MonetShutterBlue");
 #end
 #mesh HouseC
-out.geo = part(MonetHouseKit, w: 860, d: 540, floors: 1, cols: 4, roof_h: 260, lean: 0.012, seed: 7, wall_mat: "MonetPlasterOchre");
+sim_box(min: (-460, -300, 0), max: (460, 300, 700));
+anchor(mode: "origin");
+out.geo = part(MonetHouseKit, w: 860, d: 540, floors: 1, cols: 5, roof_h: 260, lean: 0.012, seed: 7, dormer: 0, wall_mat: "MonetPlasterOchre", shutter_mat: "MonetShutterGreen");
+#end
+#mesh HouseD
+sim_box(min: (-330, -280, 0), max: (330, 280, 1150));
+anchor(mode: "origin");
+out.geo = part(MonetHouseKit, w: 600, d: 500, floors: 3, cols: 2, roof_h: 240, lean: 0.006, roof_twist: 2.0, seed: 12, timber: 1, wall_mat: "MonetPlaster", shutter_mat: "MonetShutterGreen", bloom: "FlowerRed");
 #end
 #mesh TowerA
+sim_box(min: (-320, -320, 0), max: (320, 320, 1800));
+anchor(mode: "origin");
 out.geo = part(MonetTowerKit);
 #end
+#mesh ChurchA
+sim_box(min: (-1300, -500, 0), max: (1300, 500, 3500));
+anchor(mode: "origin");
+out.geo = part(MonetChurchKit);
+#end
 #mesh BridgeA
-sim_box(min: (-560, -240, -300), max: (560, 240, 235));
+sim_box(min: (-560, -240, -360), max: (560, 240, 235));
 anchor(mode: "origin");
 out.geo = part(MonetBridgeKit);
 #end
 #mesh FieldWallA
+sim_box(min: (-720, -40, 0), max: (720, 40, 130));
+anchor(mode: "origin");
 out.geo = part(MonetFieldWall, len: 1400);
-#end
-#mesh FlowerPinkClump
-out.geo = part(MonetFlowerClump, bloom: "FlowerPink");
-#end
-#mesh FlowerVioletClump
-out.geo = part(MonetFlowerClump, bloom: "FlowerViolet");
-#end
-#mesh FlowerRedClump
-out.geo = part(MonetFlowerClump, bloom: "FlowerRed");
-#end
-
-#scatter FlowersPink
-  model: "mesh.FlowerPinkClump"
-  seed: 1
-  spacing: 130
-  density_pct: 40
-  scale_min_pct: 70
-  scale_max_pct: 140
-  val_jitter_pct: 20
-  terrain_normal_align_pct: 0
-#end
-#scatter FlowersViolet
-  model: "mesh.FlowerVioletClump"
-  seed: 2
-  spacing: 150
-  density_pct: 35
-  scale_min_pct: 70
-  scale_max_pct: 130
-  val_jitter_pct: 20
-  terrain_normal_align_pct: 0
-#end
-#scatter FlowersRed
-  model: "mesh.FlowerRedClump"
-  seed: 3
-  spacing: 260
-  density_pct: 25
-  scale_min_pct: 70
-  scale_max_pct: 120
-  terrain_normal_align_pct: 0
 #end
 
 // ============================================================
@@ -585,56 +890,22 @@ out.geo = part(MonetFlowerClump, bloom: "FlowerRed");
 event OnSpawned {
     SetDefaultPlayerControlsEnabled(true)
     SetCameraToFirstPerson()
-    SetScreenShader(Material.MonetPaint)
-    SetMaterialParameterNumber(Material.MonetPaint, 0, 1)
-    SetMaterialParameterNumber(Material.MonetPaint, 1, 0.6)
-    SetMaterialParameterNumber(Material.MonetPaint, 2, 0.6)
-    SetMaterialParameterNumber(Material.MonetPaint, 3, 1.6)
-    var PaintOn = true
-    forever {
-        if IsKeyPressedByThisPlayer(Key.P) {
-            PaintOn = !PaintOn
-            if PaintOn {
-                SetMaterialParameterNumber(Material.MonetPaint, 0, 1)
-            } else {
-                SetMaterialParameterNumber(Material.MonetPaint, 0, 0)
-            }
-        }
-    }
 }
 #end
 
 // ============================================================
-// GROUND + RIVER (road runs along +X; river along Y between x=2000..2600)
+// SCENE (road runs along +X; river along Y at x ~ 2300; town on the north bank)
 // ============================================================
-object GroundSouth {
-    model = "cube"
-    material = "MonetGrass"
-    bounds_min = (-6000, -6000, -400)
-    bounds_max = (2000, 6000, 0)
-}
-object GroundNorth {
-    model = "cube"
-    material = "MonetGrass"
-    bounds_min = (2600, -6000, -400)
-    bounds_max = (10000, 6000, 0)
-}
-object RiverBed {
-    model = "cube"
-    material = "MonetPath"
-    bounds_min = (2000, -6000, -450)
-    bounds_max = (2600, 6000, -300)
-}
 display RoadSouth {
     model = "cube"
     material = "MonetPath"
-    bounds_min = (-1500, -220, 0)
+    bounds_min = (-1500, -220, -20)
     bounds_max = (1745, 220, 2)
 }
 display RoadNorth {
     model = "cube"
     material = "MonetPath"
-    bounds_min = (2855, -220, 0)
+    bounds_min = (2855, -220, -20)
     bounds_max = (8000, 220, 2)
 }
 object Bridge { model = "mesh.BridgeA" position = (2300, 0, -300) collision = mesh }
@@ -648,36 +919,58 @@ object CypressS5 { model = "tree.MonetCypress" position = (-300, -430, 0) }
 object CypressS6 { model = "tree.MonetCypress" position = (900, -420, 0) }
 object RoundTree1 { model = "tree.MonetRoundTree" position = (1500, -900, 0) }
 object RoundTree2 { model = "tree.MonetRoundTree" position = (-900, 1000, 0) }
-object MeadowWest { model = "forest.MeadowTrees" position = (-1500, 3200, 0) size = (7000, 3200, 200) }
-object MeadowEast { model = "forest.MeadowTrees" position = (-1500, -3200, 0) size = (7000, 3200, 200) }
+object MeadowWest { model = "forest.MeadowTrees" position = (-1500, 3600, -300) size = (7000, 3000, 1200) }
+object MeadowEast { model = "forest.MeadowTrees" position = (-1500, -3600, -300) size = (7000, 3000, 1200) }
+object GroveNorth { model = "forest.MeadowTrees" position = (-3500, 2500, -300) size = (2500, 1500, 1200) }
 object WallN1 { model = "mesh.FieldWallA" position = (-800, 640, 0) }
 object WallN2 { model = "mesh.FieldWallA" position = (850, 660, 0) rotation = (0, 0, 2) }
 object WallS1 { model = "mesh.FieldWallA" position = (-500, -650, 0) rotation = (0, 0, -2) }
 object WallS2 { model = "mesh.FieldWallA" position = (1100, -640, 0) }
-object FieldPinkN { model = "scatter.FlowersPink" position = (100, 1500, 0) size = (3200, 1500, 100) }
-object FieldPinkS { model = "scatter.FlowersPink" position = (100, -1500, 0) size = (3200, 1500, 100) }
-object FieldVioletN { model = "scatter.FlowersViolet" position = (-200, 1300, 0) size = (2600, 1100, 100) }
-object FieldVioletS { model = "scatter.FlowersViolet" position = (300, -1300, 0) size = (2600, 1100, 100) }
-object FieldRedN { model = "scatter.FlowersRed" position = (100, 1700, 0) size = (3200, 1700, 100) }
-object FieldRedS { model = "scatter.FlowersRed" position = (100, -1700, 0) size = (3200, 1700, 100) }
-object VergeN { model = "scatter.FlowersViolet" position = (200, 320, 0) size = (3000, 120, 100) }
-object VergeS { model = "scatter.FlowersPink" position = (200, -320, 0) size = (3000, 120, 100) }
 
 // ---- town (north bank) ----
 object House1 { model = "mesh.HouseA" position = (3400, 780, 0) }
-object House2 { model = "mesh.HouseB" position = (4300, 740, 0) rotation = (0, 0, 2) }
-object House3 { model = "mesh.HouseC" position = (3600, -800, 0) rotation = (0, 0, 180) }
-object House4 { model = "mesh.HouseA" position = (4750, -820, 0) rotation = (0, 0, 176) }
-object House5 { model = "mesh.HouseB" position = (5250, 800, 0) rotation = (0, 0, -3) }
-object House6 { model = "mesh.HouseC" position = (6300, 820, 0) rotation = (0, 0, 1) }
-object Tower1 { model = "mesh.TowerA" position = (5900, -1100, 0) }
-object CypressT1 { model = "tree.MonetCypress" position = (3950, 1450, 0) }
-object CypressT2 { model = "tree.MonetCypress" position = (5050, -1500, 0) }
-object CypressT3 { model = "tree.MonetCypress" position = (6650, -600, 0) }
+object House2 { model = "mesh.HouseB" position = (4200, 700, 0) rotation = (0, 0, 2) }
+object House3 { model = "mesh.HouseC" position = (3700, -820, 0) rotation = (0, 0, 180) }
+object House4 { model = "mesh.HouseD" position = (4550, -760, 0) rotation = (0, 0, 176) }
+object House5 { model = "mesh.HouseB" position = (4830, 720, 0) rotation = (0, 0, -3) }
+object House6 { model = "mesh.HouseC" position = (5750, 800, 0) rotation = (0, 0, 1) }
+object House7 { model = "mesh.HouseD" position = (6550, 740, 0) rotation = (0, 0, -2) }
+object House8 { model = "mesh.HouseA" position = (5300, -800, 0) rotation = (0, 0, 181) }
+object Tower1 { model = "mesh.TowerA" position = (6150, -1150, 0) }
+object CypressT1 { model = "tree.MonetCypress" position = (3950, 1500, 0) }
+object CypressT2 { model = "tree.MonetCypress" position = (5050, -1550, 0) }
+object CypressT3 { model = "tree.MonetCypress" position = (6900, -600, 0) }
 object RoundTreeT1 { model = "tree.MonetRoundTree" position = (3000, -1500, 0) }
 
-// ---- painted backdrops (unlit, cutout sky) ----
-display BackdropEast { model = "mesh.BackdropPanel" material = "BackdropCastle" position = (20000, 0, -4000) rotation = (0, 0, 90) }
-display BackdropNorth { model = "mesh.BackdropPanel" material = "BackdropHills" position = (3000, 18000, -4000) }
-display BackdropSouth { model = "mesh.BackdropPanel" material = "BackdropMountains" position = (3000, -18000, -4000) }
-display BackdropWest { model = "mesh.BackdropPanel" material = "BackdropHills" position = (-15000, 0, -4000) rotation = (0, 0, 90) }
+// ---- painted sky (clouds ring the valley) ----
+display Cloud1 { model = "mesh.CloudCard" material = "SkyCloudA" position = (63000, 0, 18000) rotation = (0, 0, 90) }
+display Cloud2 { model = "mesh.CloudCard" material = "SkyCloudB" position = (45132, 35353, 22000) rotation = (0, 0, 130) }
+display Cloud3 { model = "mesh.CloudCard" material = "SkyCloudA" position = (-7419, 59088, 20000) rotation = (0, 0, 190) }
+display Cloud4 { model = "mesh.CloudStreak" material = "SkyCloudC" position = (-47229, 29000, 15000) rotation = (0, 0, 240) }
+display Cloud5 { model = "mesh.CloudCard" material = "SkyCloudB" position = (-50562, -19495, 24000) rotation = (0, 0, 290) }
+display Cloud6 { model = "mesh.CloudCard" material = "SkyCloudA" position = (-17521, -56382, 19000) rotation = (0, 0, 340) }
+display Cloud7 { model = "mesh.CloudStreak" material = "SkyCloudC" position = (33000, -51962, 21000) rotation = (0, 0, 30) }
+display Cloud8 { model = "mesh.CloudCard" material = "SkyCloudB" position = (56694, -31000, 26000) rotation = (0, 0, 60) }
+display Cloud9 { model = "mesh.CloudStreak" material = "SkyCloudC" position = (32583, 63442, 30000) rotation = (0, 0, 155) }
+display Cloud10 { model = "mesh.CloudCard" material = "SkyCloudB" position = (20600, -65683, 28000) rotation = (0, 0, 15) }
+// ---- distant set pieces ----
+display BdCathedralE { model = "mesh.CathedralCard" material = "BdCathedral" position = (52000, 4000, -600) rotation = (0, 0, 95) }
+display BdCastleN { model = "mesh.CastleCard" material = "BdCastle" position = (9000, 27000, 1900) rotation = (0, 0, 167) }
+display BdWindmillW { model = "mesh.WindmillCard" material = "BdWindmill" position = (-26000, 12000, 1600) rotation = (0, 0, 248) }
+display BdTreeline1 { model = "mesh.TreelineCard" material = "BdTreeline" position = (-15000, 9000, -300) rotation = (0, 0, 243) }
+display BdTreeline2 { model = "mesh.TreelineCard" material = "BdTreeline" position = (-12000, -14000, -300) rotation = (0, 0, 313) }
+display BdTreeline3 { model = "mesh.TreelineCard" material = "BdTreeline" position = (14000, -16000, -300) rotation = (0, 0, 35) }
+display BdTreeline4 { model = "mesh.TreelineCard" material = "BdTreeline" position = (19000, 15000, -300) rotation = (0, 0, 133) }
+display BdTreeline5 { model = "mesh.TreelineCard" material = "BdTreeline" position = (-24000, -2000, -300) rotation = (0, 0, 274) }
+display BdRidgeN { model = "mesh.RidgeCard" material = "BdRidge" position = (10000, 110000, -2500) rotation = (0, 0, 176) }
+display BdRidgeS { model = "mesh.RidgeCard" material = "BdRidge" position = (-5000, -110000, -2500) rotation = (0, 0, 356) }
+display BdRidgeE { model = "mesh.RidgeCard" material = "BdRidge" position = (115000, -20000, -2500) rotation = (0, 0, 80) }
+display BdRidgeW { model = "mesh.RidgeCard" material = "BdRidge" position = (-105000, 15000, -2500) rotation = (0, 0, 262) }
+// ---- wild flowers ----
+object FieldPinkN { model = "scatter.FlowersPink" position = (100, 1500, -200) size = (3200, 1500, 600) }
+object FieldPinkS { model = "scatter.FlowersPink" position = (100, -1500, -200) size = (3200, 1500, 600) }
+object FieldRedN { model = "scatter.FlowersRed" position = (300, 1700, -200) size = (3200, 1700, 600) }
+object FieldRedS { model = "scatter.FlowersRed" position = (0, -1700, -200) size = (3200, 1700, 600) }
+object VergeN { model = "scatter.FlowersPink" position = (200, 300, -200) size = (3000, 120, 600) }
+object VergeS { model = "scatter.FlowersRed" position = (200, -300, -200) size = (3000, 120, 600) }
+object TownVerge { model = "scatter.FlowersPink" position = (5000, 1300, -200) size = (4000, 300, 600) }
