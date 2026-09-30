@@ -1,10 +1,11 @@
+#doc_version 3
 #project "Ori.project.@ghohoh404040.claude_monet"
 #artstyle "impressionist plein-air oil painting, Claude Monet palette, broken colour dabs, cream and ochre sunlight, lavender and blue-violet shadows, soft low-poly faceted forms"
 #set RenderSampling "native_smaa"
 
 #rules
 Monet medieval RPG art direction: stylized low-poly geometry + painterly base materials + warm sun / cool sky lighting + light fog. No heavy fullscreen oil-paint filter. Shadows lean lavender/blue, highlights cream/warm yellow.
-Reusable kit: Monet* textures are Codex-painted images; surfaces use plain textures; the oil-paint look is one fullscreen screen shader (MonetPaintPass, P cycles oil paint / PS1 / off). Tree species share the painted MonetLeafCard and recolour via leaf_tint; buildings are #meshpart kits with params (MonetHouseKit, MonetChurchKit, MonetTowerKit, MonetBridgeKit, MonetFieldWall). Ground is the #terrain recipe MonetValley.
+Reusable kit: Monet* textures are Codex-painted images; surfaces are painted on the GPU by the MonetBrushSurface #shader (world-space brush dabs, warm sun / violet shade). Trees are low-poly foliage-mass #meshparts (MonetRoundTreeKit, MonetCypressKit); buildings are #meshpart kits with params (MonetHouseKit, MonetChurchKit, MonetTowerKit, MonetBridgeKit, MonetFieldWall). Ground is the #terrain recipe MonetValley.
 #end
 
 // ============================================================
@@ -14,17 +15,17 @@ Reusable kit: Monet* textures are Codex-painted images; surfaces use plain textu
 section "Monet daylight"
 knob SetSunTilt = 32
 knob SetSunRotation = 215
-knob SetSunIntensity = 7.5
-knob SetSunColor = #FFD6A0
-knob SetSkyLightIntensity = 1.5
-knob SetSkyLightColor = #9CA6E6
-knob SetSkyLightSaturation = 1.15
-knob SetShadowOpacity = 0.62
-knob SetShadowBlurRadius = 5
+knob SetSunIntensity = 6.5
+knob SetSunColor = #FFE2B4
+knob SetSkyLightIntensity = 1.8
+knob SetSkyLightColor = #AFBCE6
+knob SetSkyLightSaturation = 1
+knob SetShadowOpacity = 0.45
+knob SetShadowBlurRadius = 7
 knob SetSkyboxCloudCoverage = 0.25
 knob SetSkyboxHaze = 3
 knob SetSaturation = 0.95
-knob SetContrast = 1
+knob SetContrast = 0.96
 knob SetBloomIntensity = 0.25
 knob SetSsrMode = Off
 section "Atmosphere"
@@ -34,7 +35,6 @@ knob SetFogStartDistance = 30
 knob SetFogEndDistance = 900
 knob SetFogSkyboxAffect = 20
 knob SetWindStrength = 0.3
-knob SetTreeLodSwitchDistanceM = 20
 section "Painterly softness"
 knob SetDofEnabled = 1
 knob SetDofArtisticEnabled = 1
@@ -58,6 +58,7 @@ knob SetGrassBladeDensityPercent = 100
 knob SetGrassBladeWidthPercent = 160
 knob SetGrassBendStrengthPercent = 170
 knob SetGrassTerrainActiveDistanceM = 32
+knob SetTreeLodSwitchDistanceM = 20
 section "River"
 knob SetWaterEnabled = 1
 knob SetWaterSeaLevelCm = -50
@@ -104,7 +105,7 @@ event OnSpawned {
 display World : MonetWorld { visible = false }
 
 // ============================================================
-// PAINTED SURFACE TEXTURES (Codex oil paintings, plain surface textures)
+// PAINTED SURFACE TEXTURES (Codex oil paintings, bake sources for the GPU brush)
 // ============================================================
 #texture MonetPlasterProc
 tile_m = 3.0;
@@ -148,116 +149,7 @@ out.normal = normal_from_height(h * 0.09, strength: 1.3);
 out.orm = orm(occlusion: 0.7 + h * 0.3, roughness: 0.92, metallic: 0.0);
 #end
 
-#texture MonetPlasterTex
-mapping = triplanar_world;
-tile_m = 3.0;
-size = 512;
-param tint = color("#FFF6EE");
-param desat = 0.5 range 0.0..1.0;
-let c = image("projimg.monet_plaster_06d44a3d", uv, wrap: "repeat").rgb * tint;
-let l = dot(c, vec3(0.333, 0.333, 0.333));
-out.color = mix(c, vec3(l, l, l), desat);
-out.normal = normal_from_height(l * 0.04, strength: 0.5);
-out.orm = orm(occlusion: 1.0, roughness: 0.92, metallic: 0.0);
-#end
-#texture MonetStoneTex
-mapping = triplanar_world;
-tile_m = 2.5;
-size = 512;
-param tint = color("#FFFFFF");
-param desat = 0.25 range 0.0..1.0;
-let c = image("projimg.monet_stone_ea6738d2", uv, wrap: "repeat").rgb * tint;
-let l = dot(c, vec3(0.333, 0.333, 0.333));
-out.color = mix(c, vec3(l, l, l), desat);
-out.normal = normal_from_height(l * 0.04, strength: 0.5);
-out.orm = orm(occlusion: 1.0, roughness: 0.92, metallic: 0.0);
-#end
-#texture MonetRoofTex
-mapping = triplanar_world;
-tile_m = 2.0;
-size = 512;
-param tint = color("#FFFFFF");
-param desat = 0.35 range 0.0..1.0;
-let c = image("projimg.monet_roof_77a4b275", uv, wrap: "repeat").rgb * tint;
-let l = dot(c, vec3(0.333, 0.333, 0.333));
-out.color = mix(c, vec3(l, l, l), desat);
-out.normal = normal_from_height(l * 0.04, strength: 0.5);
-out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
-#end
-#texture MonetGrassTex
-mapping = triplanar_world;
-tile_m = 6.0;
-size = 1024;
-param tint = color("#FFFFFF");
-param desat = 0.15 range 0.0..1.0;
-let c = image("projimg.monet_grass_e3180893", uv, wrap: "repeat").rgb * tint;
-let l = dot(c, vec3(0.333, 0.333, 0.333));
-out.color = mix(c, vec3(l, l, l), desat);
-out.normal = normal_from_height(l * 0.04, strength: 0.5);
-out.orm = orm(occlusion: 1.0, roughness: 0.95, metallic: 0.0);
-#end
-#texture MonetPathTex
-mapping = triplanar_world;
-tile_m = 3.0;
-size = 512;
-param tint = color("#FFFFFF");
-param desat = 0.3 range 0.0..1.0;
-let c = image("projimg.monet_path_cdec643e", uv, wrap: "repeat").rgb * tint;
-let l = dot(c, vec3(0.333, 0.333, 0.333));
-out.color = mix(c, vec3(l, l, l), desat);
-out.normal = normal_from_height(l * 0.04, strength: 0.5);
-out.orm = orm(occlusion: 1.0, roughness: 0.9, metallic: 0.0);
-#end
-
-// ============================================================
-// SURFACE MATERIALS: plain painted textures (the oil-paint look comes from
-// the fullscreen MonetPaintPass screen shader).
-// ============================================================
-material MonetPlaster { base = "MonetPlasterTex" }
-material MonetPlasterRose { base = "MonetPlasterTex" tint = "#FFE6E0" }
-material MonetPlasterOchre { base = "MonetPlasterTex" tint = "#FFF2D6" }
-material MonetStone { base = "MonetStoneTex" }
-material MonetRoof { base = "MonetRoofTex" }
-material MonetRoofDark { base = "MonetRoofTex" tint = "#D9C7D1" }
-material MonetPath { base = "MonetPathTex" }
-material MonetBarkMat { base = "MonetBark" }
-material MonetShutterBlue { base = "MonetWood" tint = "#B4BCD0" }
-material MonetShutterGreen { base = "MonetWood" tint = "#9FB89A" }
-material MonetTimber { base = "MonetWood" tint = "#6A5566" }
-material FlowerLeaf { base = "MonetPlasterProc" tint = "#8FA66A" }
-material FlowerPink { base = "MonetPlasterProc" tint = "#FF9FC4" }
-material FlowerRed { base = "MonetPlasterProc" tint = "#FF6A5A" }
-
-
-// PS1 look as a fullscreen pass: big low-res pixels (param 0 = vertical
-// pixel count, e.g. 240), 15-bit-style colour (param 1 = levels per channel,
-// 32) with a 4x4 Bayer dither (param 2 = dither strength), param 3 = on/off.
-material Ps1Screen { shader = "Ps1ScreenPass" }
-#shader Ps1ScreenPass
-let res = vec2<f32>(ctx.resolution);
-let lines = max(mat.params4[0].x, 60.0);
-let levels = max(mat.params4[0].y, 2.0);
-let dith = mat.params4[0].z;
-let on = mat.params4[0].w;
-let px = res.y / lines;
-let cell = floor(ctx.uv * res / px);
-let uvq = (cell + vec2<f32>(0.5)) * px / res;
-var c = ori_screen_color(uvq).rgb;
-let ix = u32(cell.x) % 4u;
-let iy = u32(cell.y) % 4u;
-let m2a = 2u * ((ix & 1u) ^ (iy & 1u)) + (iy & 1u);
-let m2b = 2u * ((ix >> 1u) ^ (iy >> 1u)) + (iy >> 1u);
-let bayer = (f32(4u * m2a + m2b) + 0.5) / 16.0 - 0.5;
-let q = levels - 1.0;
-c = floor(c * q + 0.5 + bayer * dith) / q;
-out.color = vec4<f32>(mix(ctx.color.rgb, clamp(c, vec3<f32>(0.0), vec3<f32>(1.0)), step(0.5, on)), 1.0);
-#end
-
-
-// ============================================================
-// TREE KIT (reusable species; duplicate + change seed/tint for variants)
-// Leaves are Codex-painted cards (MonetLeafCard); recolour per species with leaf_tint.
-// ============================================================
+// Foliage colour masses for the low-poly trees (sampled by the GPU brush).
 #texture MonetLeafCard
 mapping = uv;
 wrap = clamp;
@@ -352,182 +244,15 @@ out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
   scale_min_pct: 75
   scale_max_pct: 120
 #end
-
-// ============================================================
-// MEADOW, one plant per mesh: every grass blade and every flower is modelled
-// individually (random scale/yaw/tint per instance), so nothing reads as a
-// repeated clump. Plants share MeadowSway (wind + parting around the player).
-// ============================================================
-#texture PlantCardTex
-mapping = uv;
-render_mode = cutout_twosided;
-size = 32;
-out.color = color("#7E9A4C");
-out.alpha = 1.0;
-out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
-#end
-material GrassBlade { base = "PlantCardTex" tint = "#5A7A48" }
-material GrassBladeTip { base = "PlantCardTex" tint = "#C8D080" }
-material GrassBladeDry { base = "PlantCardTex" tint = "#7A8050" }
-material GrassBladeDryTip { base = "PlantCardTex" tint = "#E8D890" }
-#texture FlowerStemTex color=#5E7A44 roughness=0.85
-#texture PetalWhiteTex color=#F7F2E6 roughness=0.8
-#texture PetalPinkTex color=#F0A7C2 roughness=0.8
-#texture PetalLavTex color=#A99BD6 roughness=0.8
-#texture FlowerEyeTex color=#F0B83A roughness=0.8
-material FlowerStem { base = "FlowerStemTex" shader = "MeadowSway" }
-material PetalWhite { base = "PetalWhiteTex" shader = "MeadowSway" }
-material PetalPink { base = "PetalPinkTex" shader = "MeadowSway" }
-material PetalLav { base = "PetalLavTex" shader = "MeadowSway" }
-material FlowerEye { base = "FlowerEyeTex" shader = "MeadowSway" }
-
-// One curved blade: lower ribbon (root colour) + upper ribbon (sunlit tip).
-#meshpart MonetBlade
-param h = 70;
-param lean = 16;
-param w = 5.5;
-param mat = "GrassBlade";
-param tip = "GrassBladeTip";
-let low = ribbon_path(points: [(0, 0, -4, w), (lean * 0.15, 0, h * 0.3, w * 0.92), (lean * 0.36, 0, h * 0.56, w * 0.78)], normal: (0, 1, 0), two_sided: "no", material: mat);
-let high = ribbon_path(points: [(lean * 0.36, 0, h * 0.56, w * 0.78), (lean * 0.65, 0, h * 0.8, w * 0.5), (lean, 0, h, 0.3)], normal: (0, 1, 0), two_sided: "no", material: tip);
-out.geo = merge(low, high);
-#end
-// Each scattered grass item = several independent blades (varied height/lean/yaw).
-#mesh BladeA
-out.geo = merge(
-    part(MonetBlade, h: 70, lean: 16),
-    translate(rotate_z(part(MonetBlade, h: 55, lean: 20), 70), (9, 4, 0)),
-    translate(rotate_z(part(MonetBlade, h: 82, lean: 11), 150), (-6, 8, 0)),
-    translate(rotate_z(part(MonetBlade, h: 46, lean: 24), 215), (-10, -5, 0)),
-    translate(rotate_z(part(MonetBlade, h: 64, lean: 14), 290), (4, -9, 0)),
-    translate(rotate_z(part(MonetBlade, h: 38, lean: 18), 110), (14, -3, 0)),
-    translate(rotate_z(part(MonetBlade, h: 58, lean: 9), 330), (-3, 13, 0))
-);
-#end
-#mesh BladeB
-out.geo = merge(
-    part(MonetBlade, h: 48, lean: 22, w: 5.0, mat: "GrassBladeDry", tip: "GrassBladeDryTip"),
-    translate(rotate_z(part(MonetBlade, h: 40, lean: 18, w: 4.5, mat: "GrassBladeDry", tip: "GrassBladeDryTip"), 95), (8, 6, 0)),
-    translate(rotate_z(part(MonetBlade, h: 56, lean: 12, w: 5.0, mat: "GrassBladeDry", tip: "GrassBladeDryTip"), 200), (-7, 5, 0)),
-    translate(rotate_z(part(MonetBlade, h: 34, lean: 20, w: 4.0, mat: "GrassBladeDry", tip: "GrassBladeDryTip"), 280), (2, -9, 0)),
-    translate(rotate_z(part(MonetBlade, h: 44, lean: 15, w: 4.5), 20), (-11, -6, 0))
-);
-#end
-#mesh BladeC
-out.geo = merge(
-    part(MonetBlade, h: 88, lean: 9, w: 4.5),
-    translate(rotate_z(part(MonetBlade, h: 96, lean: 14, w: 4.0), 120), (6, 7, 0)),
-    translate(rotate_z(part(MonetBlade, h: 74, lean: 18, w: 4.5), 240), (-7, 4, 0)),
-    translate(rotate_z(part(MonetBlade, h: 66, lean: 12, w: 4.0, mat: "GrassBladeDry", tip: "GrassBladeDryTip"), 300), (3, -8, 0))
-);
-#end
-
-// One flower: stem + leaves + a ring of petals + eye. Head tilts toward the viewer side.
-#meshpart MonetFlower
-param h = 55;
-param r = 5.5;
-param n = 9;
-param pw = 0.34;
-param petal = "PetalWhite";
-param eye_r = 1.8;
-let stem = beam_between(start: (0, 0, -4), end: (2, 1, h), cross_width: 0.7, cross_height: 0.7, material: "FlowerStem");
-let leaf = scale(polyhedron(kind: "octa", radius: 7, material: "FlowerStem"), (1.0, 0.25, 0.12));
-let leaves = merge(translate(rotate_y(leaf, -30), (5, 0, h * 0.35)), translate(rotate_y(leaf, 210), (-4, 0, h * 0.2)));
-let pet = translate(scale(polyhedron(kind: "octa", radius: r * 0.55, material: petal), (1.0, pw, 0.12)), (r * 0.5, 0, 0));
-let ring = radial_array(pet, count: n, center: (0, 0, 0), radius: 0.1, axis: (0, 0, 1), rotate: "yes");
-let eye = scale(polyhedron(kind: "octa", radius: eye_r, material: "FlowerEye"), (1, 1, 0.6));
-let head = translate(rotate_y(merge(ring, eye), 35), (2, 1, h));
-out.geo = merge(stem, leaves, head);
-#end
-#mesh FlowerDaisy
-out.geo = part(MonetFlower);
-#end
-#mesh FlowerCosmos
-out.geo = part(MonetFlower, h: 65, r: 7, n: 8, pw: 0.6, petal: "PetalPink", eye_r: 1.4);
-#end
-// Lavender: a stem with buds stacked up the top third.
-#meshpart MonetLavender
-param h = 60;
-let stem = beam_between(start: (0, 0, -4), end: (1, 0, h), cross_width: 0.6, cross_height: 0.6, material: "FlowerStem");
-let bud = scale(polyhedron(kind: "octa", radius: 1.6, material: "PetalLav"), (1, 1, 1.4));
-let buds = copy_to_points(bud, points: [(1, 0, h), (0.4, 0.9, h - 3), (1.6, -0.8, h - 5), (0.2, -0.9, h - 8), (1.5, 0.9, h - 10), (0.5, 0.6, h - 13), (1.3, -0.7, h - 15), (0.6, 0.2, h - 18)]);
-out.geo = merge(stem, buds);
-#end
-#mesh FlowerLavender
-out.geo = part(MonetLavender);
-#end
-
-#scatter MeadowBladesA
-  model: "mesh.BladeA"
-  seed: 31
-  spacing: 20
-  density_pct: 100
-  scale_min_pct: 70
-  scale_max_pct: 135
-  val_jitter_pct: 18
-  terrain_normal_align_pct: 20
-#end
-#scatter MeadowBladesB
-  model: "mesh.BladeB"
-  seed: 32
-  spacing: 24
-  density_pct: 100
-  scale_min_pct: 70
-  scale_max_pct: 130
-  val_jitter_pct: 18
-  terrain_normal_align_pct: 20
-#end
-#scatter MeadowBladesC
-  model: "mesh.BladeC"
-  seed: 33
-  spacing: 30
-  density_pct: 80
-  scale_min_pct: 75
-  scale_max_pct: 125
-  val_jitter_pct: 15
-  terrain_normal_align_pct: 20
-#end
-#scatter MeadowDaisies
-  model: "mesh.FlowerDaisy"
-  seed: 41
-  spacing: 22
-  density_pct: 60
-  scale_min_pct: 70
-  scale_max_pct: 120
-  shape: "M 37 54 L 40 46 L 45 39 L 51 40 L 56 50 L 52 60 L 49 68 L 44 68 L 38 66 Z M 62 1 L 68 1 L 72 1 L 76 10 L 73 21 L 69 29 L 64 29 L 61 19 L 58 6 Z M 37 79 L 39 67 L 44 63 L 49 59 L 53 71 L 52 86 L 49 96 L 44 95 L 40 89 Z M 36 2 L 41 9 L 40 21 L 34 25 L 30 27 L 23 25 L 23 13 L 24 1 L 31 1 Z M 19 68 L 16 77 L 9 76 L 7 66 L 5 58 L 8 52 L 13 50 L 19 49 L 19 59 Z M 75 72 L 76 86 L 75 98 L 72 99 L 68 99 L 67 94 L 65 80 L 68 71 L 72 62 Z M 88 30 L 92 40 L 90 52 L 84 55 L 80 46 L 82 34 Z"
-  val_jitter_pct: 8
-  terrain_normal_align_pct: 10
-#end
-#scatter MeadowCosmos
-  model: "mesh.FlowerCosmos"
-  seed: 42
-  spacing: 28
-  density_pct: 55
-  scale_min_pct: 75
-  scale_max_pct: 120
-  shape: "M 92 36 L 89 43 L 87 31 L 85 17 L 87 6 L 90 1 L 93 3 L 95 14 L 95 32 Z M 72 77 L 73 85 L 72 92 L 68 99 L 63 96 L 57 91 L 58 82 L 61 74 L 67 74 Z M 3 96 L 1 83 L 5 74 L 9 70 L 13 72 L 15 82 L 15 94 L 12 99 L 7 99 Z M 56 48 L 52 52 L 48 46 L 48 35 L 51 28 L 54 21 L 57 28 L 60 35 L 60 46 Z M 24 40 L 19 38 L 18 30 L 19 22 L 23 15 L 30 16 L 34 24 L 31 33 L 29 40 Z M 40 80 L 45 72 L 50 78 L 48 90 L 42 92 Z"
-  val_jitter_pct: 10
-  terrain_normal_align_pct: 10
-#end
-#scatter MeadowLavender
-  model: "mesh.FlowerLavender"
-  seed: 43
-  spacing: 22
-  density_pct: 65
-  scale_min_pct: 80
-  scale_max_pct: 125
-  shape: "M 84 62 L 84 52 L 88 46 L 92 49 L 96 55 L 96 67 L 92 74 L 88 77 L 85 69 Z M 16 81 L 16 91 L 15 99 L 12 99 L 8 99 L 7 93 L 5 85 L 8 79 L 12 78 Z M 22 1 L 25 4 L 26 14 L 26 25 L 24 35 L 21 33 L 19 27 L 18 14 L 20 4 Z M 56 42 L 60 35 L 64 35 L 68 36 L 70 45 L 70 56 L 65 58 L 60 63 L 59 52 Z M 44 32 L 44 19 L 48 6 L 54 12 L 57 22 L 58 34 L 56 49 L 50 53 L 45 44 Z M 51 81 L 50 65 L 55 52 L 62 49 L 68 57 L 70 71 L 69 86 L 63 93 L 56 92 Z M 34 60 L 38 55 L 42 62 L 40 72 L 35 70 Z"
-  val_jitter_pct: 10
-  terrain_normal_align_pct: 10
-#end
 #shader MeadowSway
 @vertex {
     let hgt = clamp(ctx.local_pos.y / 0.6, 0.0, 1.0);
     let bend = hgt * hgt;
     let w = ctx.world_pos;
-    let t = u_camera.time_seconds;
-    let gust = ori_fbm2(w.x * 0.08 + t * 0.35, w.z * 0.08 - t * 0.2, 2, 5u);
-    let sway = sin(t * 1.9 + w.x * 0.45 + w.z * 0.3) * 0.06 + gust * 0.16;
+    let fps = max(mat.params4[1].w, 1.0);
+    let t = floor(u_camera.time_seconds * fps) / fps;
+    let gust = ori_fbm2(w.x * 0.08 + t * 0.35, w.z * 0.08 - t * 0.2, 2, 5u) - 0.5;
+    let sway = sin(t * 1.9 + w.x * 0.45 + w.z * 0.3) * 0.06 + gust * 0.12;
     ctx.world_pos.x += sway * bend;
     ctx.world_pos.z += sway * 0.6 * bend;
     let cam = u_camera.camera_position;
@@ -539,8 +264,34 @@ out.geo = part(MonetLavender);
     ctx.world_pos.z += dir.y * push * 0.5;
     ctx.world_pos.y -= push * 0.28;
 }
+// Plant-local dabs follow the plant; only a faint repaint changes at each held frame.
+let fps = max(mat.params4[1].w, 1.0);
+let tick = floor(u_camera.time_seconds * fps);
+let p = ctx.local_pos;
+let cell = floor(vec2<f32>(p.x * 35.0 + p.z * 19.0, p.y * 24.0));
+let dab = ori_hash2(cell.x, cell.y, 41u);
+let repaint = ori_hash2(cell.x + tick * 13.0, cell.y, 47u) - 0.5;
+let bristle = sin((p.x + p.z) * 420.0 + p.y * 18.0);
+let hgt = clamp(p.y / 0.6, 0.0, 1.0);
+var pigment = mix(mat.params4[0].xyz, mat.params4[1].xyz, smoothstep(0.15, 0.95, hgt));
+if mat.params4[0].w > 0.5 {
+    let top = mat.params4[2].x;
+    pigment = mix(mat.params4[1].xyz, mat.params4[0].xyz, smoothstep(top - 0.10, top - 0.04, p.y));
+    if mat.params4[0].w < 1.5 {
+        let eye = (1.0 - smoothstep(0.01, 0.025, length(p.xz - vec2<f32>(0.02, 0.01)))) * step(top - 0.04, p.y);
+        pigment = mix(pigment, vec3<f32>(0.87, 0.48, 0.04), eye);
+    }
+}
+pigment *= ctx.mesh_color.rgb;
+var paint = pigment * (0.86 + dab * 0.28 + bristle * 0.025 + repaint * 0.025);
+paint = mix(paint, paint * vec3<f32>(0.92, 0.94, 1.10), (1.0 - dab) * 0.24);
+out.base_color = vec4<f32>(paint, 1.0);
+out.orm = vec4<f32>(1.0, 0.96, 0.0, 0.0);
 #end
 
+
+// ---- Meadow grass: Codex-painted strips (3 atlas rows) crossed as a star; the terrain grass
+// system spawns it everywhere, sways it in the wind and bends it around walking players.
 
 // ============================================================
 // PAINTED SKY + DISTANT SET (Codex sprites, transparent, placed piece by piece
@@ -719,6 +470,138 @@ out.geo = part(MonetFlowerCard, s: 60, mat: "FlowerCardRed");
   scale_max_pct: 130
   val_jitter_pct: 15
 #end
+
+#texture MonetPlasterTex
+mapping = triplanar_world;
+tile_m = 3.0;
+size = 512;
+param tint = color("#FFF6EE");
+param desat = 0.5 range 0.0..1.0;
+let c = image("projimg.monet_plaster_06d44a3d", uv, wrap: "repeat").rgb * tint;
+let l = dot(c, vec3(0.333, 0.333, 0.333));
+out.color = mix(c, vec3(l, l, l), desat);
+out.normal = normal_from_height(l * 0.04, strength: 0.5);
+out.orm = orm(occlusion: 1.0, roughness: 0.92, metallic: 0.0);
+#end
+#texture MonetStoneTex
+mapping = triplanar_world;
+tile_m = 2.5;
+size = 512;
+param tint = color("#FFFFFF");
+param desat = 0.25 range 0.0..1.0;
+let c = image("projimg.monet_stone_ea6738d2", uv, wrap: "repeat").rgb * tint;
+let l = dot(c, vec3(0.333, 0.333, 0.333));
+out.color = mix(c, vec3(l, l, l), desat);
+out.normal = normal_from_height(l * 0.04, strength: 0.5);
+out.orm = orm(occlusion: 1.0, roughness: 0.92, metallic: 0.0);
+#end
+#texture MonetRoofTex
+mapping = triplanar_world;
+tile_m = 2.0;
+size = 512;
+param tint = color("#FFFFFF");
+param desat = 0.35 range 0.0..1.0;
+let c = image("projimg.monet_roof_77a4b275", uv, wrap: "repeat").rgb * tint;
+let l = dot(c, vec3(0.333, 0.333, 0.333));
+out.color = mix(c, vec3(l, l, l), desat);
+out.normal = normal_from_height(l * 0.04, strength: 0.5);
+out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
+#end
+#texture MonetGrassTex
+mapping = triplanar_world;
+tile_m = 6.0;
+size = 1024;
+param tint = color("#FFFFFF");
+param desat = 0.15 range 0.0..1.0;
+let c = image("projimg.monet_grass_e3180893", uv, wrap: "repeat").rgb * tint;
+let l = dot(c, vec3(0.333, 0.333, 0.333));
+out.color = mix(c, vec3(l, l, l), desat);
+out.normal = normal_from_height(l * 0.04, strength: 0.5);
+out.orm = orm(occlusion: 1.0, roughness: 0.95, metallic: 0.0);
+#end
+#texture MonetPathTex
+mapping = triplanar_world;
+tile_m = 3.0;
+size = 512;
+param tint = color("#FFFFFF");
+param desat = 0.3 range 0.0..1.0;
+let c = image("projimg.monet_path_cdec643e", uv, wrap: "repeat").rgb * tint;
+let l = dot(c, vec3(0.333, 0.333, 0.333));
+out.color = mix(c, vec3(l, l, l), desat);
+out.normal = normal_from_height(l * 0.04, strength: 0.5);
+out.orm = orm(occlusion: 1.0, roughness: 0.9, metallic: 0.0);
+#end
+
+// ============================================================
+// GPU MONET: brush-dab surface shader
+// params: 0 = metres per texture repeat, 1 = dab size (m) near the camera,
+//         2 = dab strength (0 = plain texture, 1 = full dabs), 3 = stroke angle (rad),
+//         4..6 = RGB tint.  World-space, so strokes never swim with the camera.
+// ============================================================
+material MonetPlaster { base = "MonetPlasterTex" }
+material MonetPlasterRose { base = "MonetPlasterTex" tint = "#FFE6E0" }
+material MonetPlasterOchre { base = "MonetPlasterTex" tint = "#FFF2D6" }
+material MonetStone { base = "MonetStoneTex" }
+material MonetRoof { base = "MonetRoofTex" }
+material MonetRoofDark { base = "MonetRoofTex" tint = "#D9C7D1" }
+material MonetPath { base = "MonetPathTex" }
+material MonetBarkMat { base = "MonetBark" }
+material MonetShutterBlue { base = "MonetWood" tint = "#B4BCD0" }
+material MonetShutterGreen { base = "MonetWood" tint = "#9FB89A" }
+material MonetTimber { base = "MonetWood" tint = "#6A5566" }
+material FlowerLeaf { base = "MonetPlasterProc" tint = "#8FA66A" }
+material FlowerPink { base = "MonetPlasterProc" tint = "#FF9FC4" }
+material FlowerRed { base = "MonetPlasterProc" tint = "#FF6A5A" }
+
+
+// Terrain: same brush, grass on the flats, painted earth on slopes.
+
+// PS1 look as a fullscreen pass: big low-res pixels (param 0 = vertical
+// pixel count, e.g. 240), 15-bit-style colour (param 1 = levels per channel,
+// 32) with a 4x4 Bayer dither (param 2 = dither strength), param 3 = on/off.
+material Ps1Screen { shader = "Ps1ScreenPass" }
+#shader Ps1ScreenPass
+let res = vec2<f32>(ctx.resolution);
+let lines = max(mat.params4[0].x, 60.0);
+let levels = max(mat.params4[0].y, 2.0);
+let dith = mat.params4[0].z;
+let on = mat.params4[0].w;
+let px = res.y / lines;
+let cell = floor(ctx.uv * res / px);
+let uvq = (cell + vec2<f32>(0.5)) * px / res;
+var c = ori_screen_color(uvq).rgb;
+let ix = u32(cell.x) % 4u;
+let iy = u32(cell.y) % 4u;
+let m2a = 2u * ((ix & 1u) ^ (iy & 1u)) + (iy & 1u);
+let m2b = 2u * ((ix >> 1u) ^ (iy >> 1u)) + (iy >> 1u);
+let bayer = (f32(4u * m2a + m2b) + 0.5) / 16.0 - 0.5;
+let q = levels - 1.0;
+c = floor(c * q + 0.5 + bayer * dith) / q;
+out.color = vec4<f32>(mix(ctx.color.rgb, clamp(c, vec3<f32>(0.0), vec3<f32>(1.0)), step(0.5, on)), 1.0);
+#end
+
+// ============================================================
+// OIL-PAINT MATERIAL SHADERS (11-11 Memories Retold style, per surface).
+// Every surface is rebuilt from overlapping elongated brush strokes laid on
+// the world-space plane: each stroke takes ONE flat colour (sampled at its
+// centre), gets its own value / warm-cool shift, bristle streaks, and a
+// rounded impasto profile that tilts the normal so strokes catch the sun.
+// Stroke size grows with distance so far surfaces stay painterly, not noisy.
+// ============================================================
+
+// Ground: the same stroke painter on the horizontal plane, meadow hues jittered
+// per stroke (yellow-green / sap / blue-green / ochre), path colour on slopes.
+
+// ============================================================
+// TREE KIT: low-poly painted foliage masses (a few hundred tris per tree).
+// The GPU brush paints each blob warm on the sun side, violet in shade.
+// ============================================================
+
+// Round broadleaf tree (~8 m at s = 1). Trunk sinks 80 cm so it sits on sloped ground.
+
+// Italian cypress: stacked elongated blobs tapering upward (~11 m at s = 1).
+
+
 
 // ============================================================
 // BUILDING KIT (#meshpart = reusable; #mesh = one tuned variant)
@@ -998,11 +881,17 @@ anchor(mode: "origin");
 out.geo = part(MonetFieldWall, len: 1400);
 #end
 
-// Fullscreen oil-paint pass (11-11 Memories Retold look): each pixel is pulled
-// from a jittered 'dab' cell along a flow field (ragged brushy silhouettes),
-// then a Kuwahara filter flattens colour into paint patches.
-// params: 0 paint mix, 1 grade, 2 haze, 3 kuwahara stride px,
-//         4 dab cell px, 5 edge wobble px, 6 dab re-rolls per second (0 = static).
+// Fullscreen oil-paint pass (11-11 Memories Retold look), repainted like
+// hand-drawn animation: every 1/fps seconds the whole frame is re-laid with
+// fresh brush strokes. Layer 1 = directional Kuwahara underpainting; layer 2 =
+// discrete strokes on a jittered grid (flat colour picked at the stroke centre,
+// broken-colour value/warm-cool jitter, bristle streaks, impasto ridge). Strokes
+// follow the image's edges, so grass and leaves get long strokes along each
+// blade; green plant areas re-lay fully each held frame, walls and sky only
+// shiver (param 9), so the meadow reads as painted anew with every movement.
+// params: 0 paint mix, 1 grade, 2 haze, 3 kuwahara stride px, 4 stroke width px,
+//         5 underpaint wobble px, 6 repaints per second (held frames),
+//         7 stroke opacity, 8 impasto, 9 repaint on non-plant areas (0..1).
 material MonetPaint { shader = "MonetPaintPass" }
 #shader MonetPaintPass
 let amt = mat.params4[0].x;
@@ -1011,26 +900,31 @@ let haze = mat.params4[0].z;
 let stride = max(mat.params4[0].w, 1.0);
 let dab = max(mat.params4[1].x, 2.0);
 let wob = mat.params4[1].y;
-let boil = mat.params4[1].z;
+let fps = mat.params4[1].z;
+let sAmt = mat.params4[1].w;
+let impasto = mat.params4[2].x;
+let calm = mat.params4[2].y;
 let res = vec2<f32>(ctx.resolution);
 let pxy = ctx.uv * res;
-let tick = floor(ctx.time_seconds * boil);
+let tick = floor(ctx.time_seconds * fps);
+let lw = vec3<f32>(0.299, 0.587, 0.114);
+// ---- underpainting: 5x5 directional Kuwahara, re-jittered each held frame ----
 let flow = ori_fbm2(pxy.x / 140.0, pxy.y / 140.0, 2, 5u) * 6.2831;
-let dir = vec2<f32>(cos(flow), sin(flow));
-let along = dot(pxy, dir);
-let across = dot(pxy, vec2<f32>(-dir.y, dir.x));
-let cx = floor(along / (dab * 2.2));
-let cy = floor(across / dab);
-let h1 = ori_hash2(cx + tick * 13.0, cy, 3u);
-let h2 = ori_hash2(cx, cy - tick * 7.0, 9u);
-let jit = (dir * (h1 - 0.5) * 2.0 + vec2<f32>(-dir.y, dir.x) * (h2 - 0.5)) * wob;
+let dir0 = vec2<f32>(cos(flow), sin(flow));
+let along0 = dot(pxy, dir0);
+let across0 = dot(pxy, vec2<f32>(-dir0.y, dir0.x));
+let kx = floor(along0 / (dab * 2.2));
+let ky = floor(across0 / dab);
+let h1 = ori_hash2(kx + tick * 13.0, ky, 3u);
+let h2 = ori_hash2(kx, ky - tick * 7.0, 9u);
+let jit = (dir0 * (h1 - 0.5) * 2.0 + vec2<f32>(-dir0.y, dir0.x) * (h2 - 0.5)) * wob;
 let uv0 = ctx.uv + jit / res;
 let px = vec2<f32>(stride) / res;
 var m0 = vec3<f32>(0.0); var m1 = vec3<f32>(0.0); var m2 = vec3<f32>(0.0); var m3 = vec3<f32>(0.0);
 var q0 = vec3<f32>(0.0); var q1 = vec3<f32>(0.0); var q2 = vec3<f32>(0.0); var q3 = vec3<f32>(0.0);
-for (var j: i32 = -3; j <= 3; j = j + 1) {
-    for (var i: i32 = -3; i <= 3; i = i + 1) {
-        let o = dir * f32(i) * 1.4 + vec2<f32>(-dir.y, dir.x) * f32(j) * 0.7;
+for (var j: i32 = -2; j <= 2; j = j + 1) {
+    for (var i: i32 = -2; i <= 2; i = i + 1) {
+        let o = dir0 * f32(i) * 1.4 + vec2<f32>(-dir0.y, dir0.x) * f32(j) * 0.7;
         let c = ori_screen_color(uv0 + o * px).rgb;
         let c2 = c * c;
         let a0 = select(0.0, 1.0, i <= 0 && j <= 0);
@@ -1043,7 +937,7 @@ for (var j: i32 = -3; j <= 3; j = j + 1) {
         m3 += c * a3; q3 += c2 * a3;
     }
 }
-let n = 16.0;
+let n = 9.0;
 let e0 = m0 / n; let e1 = m1 / n; let e2 = m2 / n; let e3 = m3 / n;
 let v0 = abs(q0 / n - e0 * e0); let v1 = abs(q1 / n - e1 * e1); let v2 = abs(q2 / n - e2 * e2); let v3 = abs(q3 / n - e3 * e3);
 let w0 = 1.0 / pow(v0.r + v0.g + v0.b + 0.0004, 2.0);
@@ -1051,15 +945,81 @@ let w1 = 1.0 / pow(v1.r + v1.g + v1.b + 0.0004, 2.0);
 let w2 = 1.0 / pow(v2.r + v2.g + v2.b + 0.0004, 2.0);
 let w3 = 1.0 / pow(v3.r + v3.g + v3.b + 0.0004, 2.0);
 let paint = (e0 * w0 + e1 * w1 + e2 * w2 + e3 * w3) / (w0 + w1 + w2 + w3);
-let streak = 0.94 + 0.12 * ori_hash2(floor(along / 2.0), cy, 21u);
-var col = mix(ctx.color.rgb, paint * streak, amt);
+var col = mix(ctx.color.rgb, paint, amt);
+// ---- brush strokes: one per jittered grid cell, topmost wins ----
+let cellSz = dab * 2.0;
+let gcell = floor(pxy / cellSz);
+let light = vec2<f32>(-0.6, -0.8);
+var best = -1.0;
+var sCol = vec3<f32>(0.0);
+var sA = 0.0;
+for (var cj: i32 = -1; cj <= 1; cj = cj + 1) {
+    for (var ci: i32 = -1; ci <= 1; ci = ci + 1) {
+        let cell = gcell + vec2<f32>(f32(ci), f32(cj));
+        let r0 = ori_hash2(cell.x, cell.y, 11u);
+        let r1 = ori_hash2(cell.y, cell.x, 23u);
+        let home = (cell + vec2<f32>(0.2 + r0 * 0.6, 0.2 + r1 * 0.6)) * cellSz;
+        let hc = ori_screen_color(home / res).rgb;
+        let hmx = max(hc.r, max(hc.g, hc.b));
+        let hmn = min(hc.r, min(hc.g, hc.b));
+        let plant = smoothstep(0.0, 0.05, hc.g - hc.b) * smoothstep(0.08, 0.24, (hmx - hmn) / (hmx + 0.0001));
+        let mv = mix(calm, 1.0, plant);
+        let hx = ori_hash2(cell.x + tick * 17.31, cell.y, 13u) - 0.5;
+        let hy = ori_hash2(cell.x, cell.y + tick * 11.7, 17u) - 0.5;
+        let ha = ori_hash2(cell.x - tick * 7.3, cell.y + tick * 3.1, 19u) - 0.5;
+        let hv = ori_hash2(cell.x + tick * 5.9, cell.y - tick * 2.3, 41u) - 0.5;
+        let center = home + vec2<f32>(hx, hy) * cellSz * 0.8 * mv;
+        let g = dab * 0.7;
+        let lx1 = dot(ori_screen_color((center + vec2<f32>(g, 0.0)) / res).rgb, lw);
+        let lx0 = dot(ori_screen_color((center - vec2<f32>(g, 0.0)) / res).rgb, lw);
+        let ly1 = dot(ori_screen_color((center + vec2<f32>(0.0, g)) / res).rgb, lw);
+        let ly0 = dot(ori_screen_color((center - vec2<f32>(0.0, g)) / res).rgb, lw);
+        var sc = ori_screen_color(center / res).rgb;
+        let grad = vec2<f32>(lx1 - lx0, ly1 - ly0);
+        let ge = smoothstep(0.015, 0.07, length(grad));
+        // orientation: along the local edge; plants default upright, elsewhere a flow field
+        let edgeA = atan2(grad.y, grad.x) + 1.5708;
+        let flowA = ori_fbm2(center.x / 180.0, center.y / 180.0, 2, 5u) * 6.2831;
+        let baseA = mix(flowA, 1.5708 + (r0 - 0.5) * 0.5, plant);
+        let dbl = mix(vec2<f32>(cos(2.0 * baseA), sin(2.0 * baseA)), vec2<f32>(cos(2.0 * edgeA), sin(2.0 * edgeA)), ge);
+        let ang = 0.5 * atan2(dbl.y, dbl.x) + ha * 0.6 * mv;
+        let sd = vec2<f32>(cos(ang), sin(ang));
+        let sn = vec2<f32>(-sd.y, sd.x);
+        let slen = dab * mix(1.3, 3.0, plant) * (0.8 + 0.4 * r1);
+        let swid = dab * mix(1.1, 0.5, plant) * (0.8 + 0.4 * r0);
+        let dd = pxy - center;
+        let u = dot(dd, sd) / slen;
+        let v = dot(dd, sn) / swid;
+        // loaded brush: round head at u=-1, dry tapering tail toward u=+1
+        let wu = sqrt(max(1.0 - u * u, 0.0)) * mix(1.0, mix(0.85, 0.55, plant), smoothstep(-0.3, 1.0, u));
+        let av = abs(v) / max(wu, 0.001);
+        let rag = ori_hash2(floor(v * 6.0 + 7.0), cell.x + cell.y * 31.0 + tick * mv, 47u);
+        let cover = (1.0 - smoothstep(0.7, 1.0, av)) * step(abs(u), 1.0) * step(rag * smoothstep(0.2, 1.0, u), 0.75);
+        // broken colour: each stroke slightly lighter/warmer or darker/cooler
+        sc = sc * (1.0 + hv * 0.16);
+        sc = mix(sc, sc * vec3<f32>(1.06, 1.0, 0.88), max(hv, 0.0) * 1.2);
+        sc = mix(sc, sc * vec3<f32>(0.9, 0.95, 1.1), max(-hv, 0.0) * 1.2);
+        // bristle streaks run along the stroke; impasto ridge catches upper-left light
+        let bristle = 0.93 + 0.12 * ori_hash2(floor(v * 5.0 + 5.0), cell.x * 7.0 + cell.y, 43u);
+        let ridge = -v * dot(sn, light) * (1.0 - av);
+        sc = sc * bristle * (1.0 + impasto * 0.14 * ridge);
+        let pri = ori_hash2(cell.x + tick * mv * 3.0, cell.y - tick * mv, 37u);
+        let take = cover > 0.02 && pri > best;
+        best = select(best, pri, take);
+        sCol = select(sCol, sc, vec3<bool>(take));
+        sA = select(sA, cover, take);
+    }
+}
+let d = ori_screen_depth_m(ctx.uv);
+let sky = step(2900.0, d);
+col = mix(col, sCol, sA * sAmt * (1.0 - 0.5 * sky));
+// ---- Monet grade: violet shadows, warm cream lights, soft distance haze ----
 let l = dot(col, vec3<f32>(0.2126, 0.7152, 0.0722));
 let sh = 1.0 - smoothstep(0.05, 0.45, l);
 let hi = smoothstep(0.55, 0.95, l);
-col = mix(col, col * vec3<f32>(0.86, 0.84, 1.12), sh * grade);
+col = mix(col, col * vec3<f32>(0.95, 0.96, 1.04) + vec3<f32>(0.025, 0.021, 0.035), sh * grade);
 col = mix(col, col * vec3<f32>(1.06, 1.0, 0.86), hi * grade);
-let d = ori_screen_depth_m(ctx.uv);
-let f = smoothstep(25.0, 300.0, d) * (1.0 - step(2900.0, d)) * haze;
+let f = smoothstep(25.0, 300.0, d) * (1.0 - sky) * haze;
 col = mix(col, vec3<f32>(0.86, 0.82, 0.86), f * 0.4);
 out.color = vec4<f32>(col, 1.0);
 #end
@@ -1071,13 +1031,16 @@ out.color = vec4<f32>(col, 1.0);
 event OnSpawned {
     SetDefaultPlayerControlsEnabled(true)
     SetCameraToFirstPerson()
-    SetMaterialParameterNumber(Material.MonetPaint, 0, 1)
-    SetMaterialParameterNumber(Material.MonetPaint, 1, 0.5)
-    SetMaterialParameterNumber(Material.MonetPaint, 2, 0.5)
-    SetMaterialParameterNumber(Material.MonetPaint, 3, 1.8)
-    SetMaterialParameterNumber(Material.MonetPaint, 4, 8)
-    SetMaterialParameterNumber(Material.MonetPaint, 5, 5)
-    SetMaterialParameterNumber(Material.MonetPaint, 6, 0)
+    SetMaterialParameterNumber(Material.MonetPaint, 0, 0.65)
+    SetMaterialParameterNumber(Material.MonetPaint, 1, 0.35)
+    SetMaterialParameterNumber(Material.MonetPaint, 2, 0.7)
+    SetMaterialParameterNumber(Material.MonetPaint, 3, 2.2)
+    SetMaterialParameterNumber(Material.MonetPaint, 4, 7)
+    SetMaterialParameterNumber(Material.MonetPaint, 5, 0.65)
+    SetMaterialParameterNumber(Material.MonetPaint, 6, 8)
+    SetMaterialParameterNumber(Material.MonetPaint, 7, 0.85)
+    SetMaterialParameterNumber(Material.MonetPaint, 8, 1)
+    SetMaterialParameterNumber(Material.MonetPaint, 9, 0.2)
     SetMaterialParameterNumber(Material.Ps1Screen, 0, 240)
     SetMaterialParameterNumber(Material.Ps1Screen, 1, 32)
     SetMaterialParameterNumber(Material.Ps1Screen, 2, 1)
@@ -1145,25 +1108,8 @@ object CypressT1 { model = "tree.MonetCypress" position = (3950, 1500, 0) }
 object CypressT2 { model = "tree.MonetCypress" position = (5050, -1550, 0) }
 object CypressT3 { model = "tree.MonetCypress" position = (6900, -600, 0) }
 object RoundTreeT1 { model = "tree.MonetRoundTree" position = (3000, -1500, 0) }
-// ---- meadow: individual blades + flowers per region ----
-object DaisiesN { model = "scatter.MeadowDaisies" position = (-1500, 1450, -300) size = (6000, 1900, 1200) }
-object CosmosN { model = "scatter.MeadowCosmos" position = (-1500, 1450, -300) size = (6000, 1900, 1200) }
-object LavenderN { model = "scatter.MeadowLavender" position = (-1500, 1450, -300) size = (6000, 1900, 1200) }
-object DaisiesS { model = "scatter.MeadowDaisies" position = (-1500, -1450, -300) size = (6000, 1900, 1200) }
-object CosmosS { model = "scatter.MeadowCosmos" position = (-1500, -1450, -300) size = (6000, 1900, 1200) }
-object LavenderS { model = "scatter.MeadowLavender" position = (-1500, -1450, -300) size = (6000, 1900, 1200) }
-object DaisiesVergeN { model = "scatter.MeadowDaisies" position = (100, 430, -300) size = (3600, 380, 1200) }
-object CosmosVergeN { model = "scatter.MeadowCosmos" position = (100, 430, -300) size = (3600, 380, 1200) }
-object LavenderVergeN { model = "scatter.MeadowLavender" position = (100, 430, -300) size = (3600, 380, 1200) }
-object DaisiesVergeS { model = "scatter.MeadowDaisies" position = (100, -430, -300) size = (3600, 380, 1200) }
-object CosmosVergeS { model = "scatter.MeadowCosmos" position = (100, -430, -300) size = (3600, 380, 1200) }
-object LavenderVergeS { model = "scatter.MeadowLavender" position = (100, -430, -300) size = (3600, 380, 1200) }
-object DaisiesTownN { model = "scatter.MeadowDaisies" position = (5200, 1800, -300) size = (5200, 1300, 1200) }
-object CosmosTownN { model = "scatter.MeadowCosmos" position = (5200, 1800, -300) size = (5200, 1300, 1200) }
-object LavenderTownN { model = "scatter.MeadowLavender" position = (5200, 1800, -300) size = (5200, 1300, 1200) }
-object DaisiesTownS { model = "scatter.MeadowDaisies" position = (5200, -1800, -300) size = (5200, 1300, 1200) }
-object CosmosTownS { model = "scatter.MeadowCosmos" position = (5200, -1800, -300) size = (5200, 1300, 1200) }
-object LavenderTownS { model = "scatter.MeadowLavender" position = (5200, -1800, -300) size = (5200, 1300, 1200) }
+
+// ---- meadow grass = engine GPU blades (terrain only, parts around the player) ----
 
 // ---- painted sky (clouds ring the valley) ----
 display Cloud1 { model = "mesh.CloudCard" material = "SkyCloudA" position = (63000, 0, 18000) rotation = (0, 0, 90) }
@@ -1189,3 +1135,220 @@ display BdRidgeN { model = "mesh.RidgeCard" material = "BdRidge" position = (100
 display BdRidgeS { model = "mesh.RidgeCard" material = "BdRidge" position = (-5000, -110000, -2500) rotation = (0, 0, 356) }
 display BdRidgeE { model = "mesh.RidgeCard" material = "BdRidge" position = (115000, -20000, -2500) rotation = (0, 0, 80) }
 display BdRidgeW { model = "mesh.RidgeCard" material = "BdRidge" position = (-105000, 15000, -2500) rotation = (0, 0, 262) }
+// ---- wild flowers ----
+
+// ============================================================
+// MEADOW, one plant per mesh: every grass blade and every flower is its own
+// instance (random scale/yaw/tint), so nothing reads as a repeated clump.
+// All plants share the MeadowSway vertex hook (wind + parting around the player).
+// ============================================================
+// Blade colour is computed on the GPU from height + sun: root -> tip gradient,
+// sunlit side warm gold, shaded side violet-blue. params: 0-2 root, 4-6 tip, 8-10 cool.
+
+#texture PlantCardTex
+mapping = uv;
+render_mode = cutout_twosided;
+size = 32;
+out.color = color("#7E9A4C");
+out.alpha = 1.0;
+out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
+#end
+
+material GrassBlade { base = "PlantCardTex" shader = "MeadowSway" param0 = 0.10224 param1 = 0.19462 param2 = 0.06480 param4 = 0.57758 param5 = 0.63076 param6 = 0.21586 param7 = 8 }
+
+material GrassBladeTip { base = "PlantCardTex" shader = "MeadowSway" param0 = 0.57758 param1 = 0.63076 param2 = 0.21586 param7 = 8 }
+
+material GrassBladeDry { base = "PlantCardTex" shader = "MeadowSway" param0 = 0.19462 param1 = 0.21586 param2 = 0.08022 param4 = 0.80695 param5 = 0.68669 param6 = 0.27889 param7 = 8 }
+
+material GrassBladeDryTip { base = "PlantCardTex" shader = "MeadowSway" param0 = 0.80695 param1 = 0.68669 param2 = 0.27889 param7 = 8 }
+
+#texture FlowerStemTex color=#5E7A44 roughness=0.85
+
+#texture PetalWhiteTex color=#F7F2E6 roughness=0.8
+
+#texture PetalPinkTex color=#F0A7C2 roughness=0.8
+
+#texture PetalLavTex color=#A99BD6 roughness=0.8
+
+#texture FlowerEyeTex color=#F0B83A roughness=0.8
+
+material FlowerStem { base = "FlowerStemTex" shader = "MeadowSway" param0 = 0.11193 param1 = 0.19462 param2 = 0.05781 param7 = 8 }
+
+material PetalWhite { base = "PetalWhiteTex" shader = "MeadowSway" param0 = 0.93011 param1 = 0.88792 param2 = 0.79130 param3 = 1 param4 = 0.11193 param5 = 0.19462 param6 = 0.05781 param8 = 0.55 param7 = 8 }
+
+material PetalPink { base = "PetalPinkTex" shader = "MeadowSway" param0 = 0.87137 param1 = 0.38643 param2 = 0.53948 param3 = 1 param4 = 0.11193 param5 = 0.19462 param6 = 0.05781 param8 = 0.65 param7 = 8 }
+
+material PetalLav { base = "PetalLavTex" shader = "MeadowSway" param0 = 0.39676 param1 = 0.32778 param2 = 0.67244 param3 = 2 param4 = 0.11193 param5 = 0.19462 param6 = 0.05781 param8 = 0.60 param7 = 8 }
+
+material FlowerEye { base = "FlowerEyeTex" shader = "MeadowSway" param0 = 0.87137 param1 = 0.47932 param2 = 0.04231 param7 = 8 }
+
+// One curved blade (ribbon, tapering to a point).
+#meshpart MonetBlade
+param h = 70;
+param lean = 16;
+param w = 5.5;
+param mat = "GrassBlade";
+param tip = "GrassBladeTip";
+let low = ribbon_path(points: [(0, 0, -4, w), (lean * 0.15, 0, h * 0.3, w * 0.92), (lean * 0.36, 0, h * 0.56, w * 0.78)], normal: (0, 1, 0), two_sided: "no", material: mat);
+let high = ribbon_path(points: [(lean * 0.36, 0, h * 0.56, w * 0.78), (lean * 0.65, 0, h * 0.8, w * 0.5), (lean, 0, h, 0.3)], normal: (0, 1, 0), two_sided: "no", material: tip);
+out.geo = merge(low, high);
+#end
+
+#mesh BladeA
+out.geo = merge(
+    part(MonetBlade, h: 70, lean: 16),
+    translate(rotate_z(part(MonetBlade, h: 55, lean: 20), 70), (9, 4, 0)),
+    translate(rotate_z(part(MonetBlade, h: 82, lean: 11), 150), (-6, 8, 0)),
+    translate(rotate_z(part(MonetBlade, h: 46, lean: 24), 215), (-10, -5, 0)),
+    translate(rotate_z(part(MonetBlade, h: 64, lean: 14), 290), (4, -9, 0)),
+    translate(rotate_z(part(MonetBlade, h: 38, lean: 18), 110), (14, -3, 0)),
+    translate(rotate_z(part(MonetBlade, h: 58, lean: 9), 330), (-3, 13, 0))
+);
+#end
+
+#mesh BladeB
+out.geo = merge(
+    part(MonetBlade, h: 48, lean: 22, w: 5.0, mat: "GrassBladeDry", tip: "GrassBladeDryTip"),
+    translate(rotate_z(part(MonetBlade, h: 40, lean: 18, w: 4.5, mat: "GrassBladeDry", tip: "GrassBladeDryTip"), 95), (8, 6, 0)),
+    translate(rotate_z(part(MonetBlade, h: 56, lean: 12, w: 5.0, mat: "GrassBladeDry", tip: "GrassBladeDryTip"), 200), (-7, 5, 0)),
+    translate(rotate_z(part(MonetBlade, h: 34, lean: 20, w: 4.0, mat: "GrassBladeDry", tip: "GrassBladeDryTip"), 280), (2, -9, 0)),
+    translate(rotate_z(part(MonetBlade, h: 44, lean: 15, w: 4.5), 20), (-11, -6, 0))
+);
+#end
+
+#mesh BladeC
+out.geo = merge(
+    part(MonetBlade, h: 88, lean: 9, w: 4.5),
+    translate(rotate_z(part(MonetBlade, h: 96, lean: 14, w: 4.0), 120), (6, 7, 0)),
+    translate(rotate_z(part(MonetBlade, h: 74, lean: 18, w: 4.5), 240), (-7, 4, 0)),
+    translate(rotate_z(part(MonetBlade, h: 66, lean: 12, w: 4.0, mat: "GrassBladeDry", tip: "GrassBladeDryTip"), 300), (3, -8, 0))
+);
+#end
+
+// One flower: stem + a ring of petals + eye. Head tilts toward the viewer side.
+#meshpart MonetFlower
+param h = 55;
+param r = 5.5;
+param n = 9;
+param pw = 0.34;
+param petal = "PetalWhite";
+param eye_r = 1.8;
+let stem = beam_between(start: (0, 0, -4), end: (2, 1, h), cross_width: 0.7, cross_height: 0.7, material: "FlowerStem");
+let leaf = scale(polyhedron(kind: "octa", radius: 7, material: "FlowerStem"), (1.0, 0.25, 0.12));
+let leaves = merge(translate(rotate_y(leaf, -30), (5, 0, h * 0.35)), translate(rotate_y(leaf, 210), (-4, 0, h * 0.2)));
+let pet = translate(scale(polyhedron(kind: "octa", radius: r * 0.55, material: petal), (1.0, pw, 0.12)), (r * 0.5, 0, 0));
+let ring = radial_array(pet, count: n, center: (0, 0, 0), radius: 0.1, axis: (0, 0, 1), rotate: "yes");
+let eye = scale(polyhedron(kind: "octa", radius: eye_r, material: "FlowerEye"), (1, 1, 0.6));
+let head = translate(rotate_y(merge(ring, eye), 35), (2, 1, h));
+out.geo = merge(stem, leaves, head);
+#end
+
+#mesh FlowerDaisy
+out.geo = part(MonetFlower);
+#end
+
+#mesh FlowerCosmos
+out.geo = part(MonetFlower, h: 65, r: 7, n: 8, pw: 0.6, petal: "PetalPink", eye_r: 1.4);
+#end
+
+// Lavender: a stem with buds stacked up the top third.
+#meshpart MonetLavender
+param h = 60;
+let stem = beam_between(start: (0, 0, -4), end: (1, 0, h), cross_width: 0.6, cross_height: 0.6, material: "FlowerStem");
+let bud = scale(polyhedron(kind: "octa", radius: 1.6, material: "PetalLav"), (1, 1, 1.4));
+let buds = copy_to_points(bud, points: [(1, 0, h), (0.4, 0.9, h - 3), (1.6, -0.8, h - 5), (0.2, -0.9, h - 8), (1.5, 0.9, h - 10), (0.5, 0.6, h - 13), (1.3, -0.7, h - 15), (0.6, 0.2, h - 18)]);
+out.geo = merge(stem, buds);
+#end
+
+#mesh FlowerLavender
+out.geo = part(MonetLavender);
+#end
+
+#scatter MeadowBladesA
+  model: "mesh.BladeA"
+  seed: 31
+  spacing: 20
+  density_pct: 100
+  scale_min_pct: 70
+  scale_max_pct: 135
+  val_jitter_pct: 18
+  terrain_normal_align_pct: 20
+#end
+
+#scatter MeadowBladesB
+  model: "mesh.BladeB"
+  seed: 32
+  spacing: 24
+  density_pct: 100
+  scale_min_pct: 70
+  scale_max_pct: 130
+  val_jitter_pct: 18
+  terrain_normal_align_pct: 20
+#end
+
+#scatter MeadowBladesC
+  model: "mesh.BladeC"
+  seed: 33
+  spacing: 30
+  density_pct: 80
+  scale_min_pct: 75
+  scale_max_pct: 125
+  val_jitter_pct: 15
+  terrain_normal_align_pct: 20
+#end
+
+#scatter MeadowDaisies
+  model: "mesh.FlowerDaisy"
+  seed: 41
+  spacing: 22
+  density_pct: 60
+  scale_min_pct: 70
+  scale_max_pct: 120
+  shape: "M 37 54 L 40 46 L 45 39 L 51 40 L 56 50 L 52 60 L 49 68 L 44 68 L 38 66 Z M 62 1 L 68 1 L 72 1 L 76 10 L 73 21 L 69 29 L 64 29 L 61 19 L 58 6 Z M 37 79 L 39 67 L 44 63 L 49 59 L 53 71 L 52 86 L 49 96 L 44 95 L 40 89 Z M 36 2 L 41 9 L 40 21 L 34 25 L 30 27 L 23 25 L 23 13 L 24 1 L 31 1 Z M 19 68 L 16 77 L 9 76 L 7 66 L 5 58 L 8 52 L 13 50 L 19 49 L 19 59 Z M 75 72 L 76 86 L 75 98 L 72 99 L 68 99 L 67 94 L 65 80 L 68 71 L 72 62 Z M 88 30 L 92 40 L 90 52 L 84 55 L 80 46 L 82 34 Z"
+  val_jitter_pct: 8
+  terrain_normal_align_pct: 10
+#end
+
+#scatter MeadowCosmos
+  model: "mesh.FlowerCosmos"
+  seed: 42
+  spacing: 28
+  density_pct: 55
+  scale_min_pct: 75
+  scale_max_pct: 120
+  shape: "M 92 36 L 89 43 L 87 31 L 85 17 L 87 6 L 90 1 L 93 3 L 95 14 L 95 32 Z M 72 77 L 73 85 L 72 92 L 68 99 L 63 96 L 57 91 L 58 82 L 61 74 L 67 74 Z M 3 96 L 1 83 L 5 74 L 9 70 L 13 72 L 15 82 L 15 94 L 12 99 L 7 99 Z M 56 48 L 52 52 L 48 46 L 48 35 L 51 28 L 54 21 L 57 28 L 60 35 L 60 46 Z M 24 40 L 19 38 L 18 30 L 19 22 L 23 15 L 30 16 L 34 24 L 31 33 L 29 40 Z M 40 80 L 45 72 L 50 78 L 48 90 L 42 92 Z"
+  val_jitter_pct: 10
+  terrain_normal_align_pct: 10
+#end
+
+#scatter MeadowLavender
+  model: "mesh.FlowerLavender"
+  seed: 43
+  spacing: 22
+  density_pct: 65
+  scale_min_pct: 80
+  scale_max_pct: 125
+  shape: "M 84 62 L 84 52 L 88 46 L 92 49 L 96 55 L 96 67 L 92 74 L 88 77 L 85 69 Z M 16 81 L 16 91 L 15 99 L 12 99 L 8 99 L 7 93 L 5 85 L 8 79 L 12 78 Z M 22 1 L 25 4 L 26 14 L 26 25 L 24 35 L 21 33 L 19 27 L 18 14 L 20 4 Z M 56 42 L 60 35 L 64 35 L 68 36 L 70 45 L 70 56 L 65 58 L 60 63 L 59 52 Z M 44 32 L 44 19 L 48 6 L 54 12 L 57 22 L 58 34 L 56 49 L 50 53 L 45 44 Z M 51 81 L 50 65 L 55 52 L 62 49 L 68 57 L 70 71 L 69 86 L 63 93 L 56 92 Z M 34 60 L 38 55 L 42 62 L 40 72 L 35 70 Z"
+  val_jitter_pct: 10
+  terrain_normal_align_pct: 10
+#end
+
+// ---- meadow flowers: terrain scatters (sit on the ground, never on walls) ----
+object DaisiesN { model = "scatter.MeadowDaisies" position = (-1500, 1450, -300) size = (6000, 1900, 1200) }
+object CosmosN { model = "scatter.MeadowCosmos" position = (-1500, 1450, -300) size = (6000, 1900, 1200) }
+object LavenderN { model = "scatter.MeadowLavender" position = (-1500, 1450, -300) size = (6000, 1900, 1200) }
+object DaisiesS { model = "scatter.MeadowDaisies" position = (-1500, -1450, -300) size = (6000, 1900, 1200) }
+object CosmosS { model = "scatter.MeadowCosmos" position = (-1500, -1450, -300) size = (6000, 1900, 1200) }
+object LavenderS { model = "scatter.MeadowLavender" position = (-1500, -1450, -300) size = (6000, 1900, 1200) }
+object DaisiesVergeN { model = "scatter.MeadowDaisies" position = (100, 430, -300) size = (3600, 380, 1200) }
+object CosmosVergeN { model = "scatter.MeadowCosmos" position = (100, 430, -300) size = (3600, 380, 1200) }
+object LavenderVergeN { model = "scatter.MeadowLavender" position = (100, 430, -300) size = (3600, 380, 1200) }
+object DaisiesVergeS { model = "scatter.MeadowDaisies" position = (100, -430, -300) size = (3600, 380, 1200) }
+object CosmosVergeS { model = "scatter.MeadowCosmos" position = (100, -430, -300) size = (3600, 380, 1200) }
+object LavenderVergeS { model = "scatter.MeadowLavender" position = (100, -430, -300) size = (3600, 380, 1200) }
+object DaisiesTownN { model = "scatter.MeadowDaisies" position = (5200, 1800, -300) size = (5200, 1300, 1200) }
+object CosmosTownN { model = "scatter.MeadowCosmos" position = (5200, 1800, -300) size = (5200, 1300, 1200) }
+object LavenderTownN { model = "scatter.MeadowLavender" position = (5200, 1800, -300) size = (5200, 1300, 1200) }
+object DaisiesTownS { model = "scatter.MeadowDaisies" position = (5200, -1800, -300) size = (5200, 1300, 1200) }
+object CosmosTownS { model = "scatter.MeadowCosmos" position = (5200, -1800, -300) size = (5200, 1300, 1200) }
+object LavenderTownS { model = "scatter.MeadowLavender" position = (5200, -1800, -300) size = (5200, 1300, 1200) }
