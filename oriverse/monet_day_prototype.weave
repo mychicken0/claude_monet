@@ -881,17 +881,12 @@ anchor(mode: "origin");
 out.geo = part(MonetFieldWall, len: 1400);
 #end
 
-// Fullscreen oil-paint pass (11-11 Memories Retold look), repainted like
-// hand-drawn animation: every 1/fps seconds the whole frame is re-laid with
-// fresh brush strokes. Layer 1 = directional Kuwahara underpainting; layer 2 =
-// discrete strokes on a jittered grid (flat colour picked at the stroke centre,
-// broken-colour value/warm-cool jitter, bristle streaks, impasto ridge). Strokes
-// follow the image's edges, so grass and leaves get long strokes along each
-// blade; green plant areas re-lay fully each held frame, walls and sky only
-// shiver (param 9), so the meadow reads as painted anew with every movement.
-// params: 0 paint mix, 1 grade, 2 haze, 3 kuwahara stride px, 4 stroke width px,
-//         5 underpaint wobble px, 6 repaints per second (held frames),
-//         7 stroke opacity, 8 impasto, 9 repaint on non-plant areas (0..1).
+// Fullscreen oil-paint pass (11-11 Memories Retold look): each pixel is pulled
+// from a jittered 'dab' cell along a flow field (ragged brushy silhouettes),
+// then a Kuwahara filter flattens colour into paint patches.
+// params: 0 paint mix, 1 grade, 2 haze, 3 kuwahara stride px,
+//         4 dab cell px, 5 edge wobble px, 6 re-paints per second on plants,
+//         7 extra brush wobble px on plants (grass, leaves, flowers only).
 material MonetPaint { shader = "MonetPaintPass" }
 #shader MonetPaintPass
 let amt = mat.params4[0].x;
@@ -900,31 +895,34 @@ let haze = mat.params4[0].z;
 let stride = max(mat.params4[0].w, 1.0);
 let dab = max(mat.params4[1].x, 2.0);
 let wob = mat.params4[1].y;
-let fps = mat.params4[1].z;
-let sAmt = mat.params4[1].w;
-let impasto = mat.params4[2].x;
-let calm = mat.params4[2].y;
+let boil = mat.params4[1].z;
+let plantWob = mat.params4[1].w;
 let res = vec2<f32>(ctx.resolution);
 let pxy = ctx.uv * res;
-let tick = floor(ctx.time_seconds * fps);
-let lw = vec3<f32>(0.299, 0.587, 0.114);
-// ---- underpainting: 5x5 directional Kuwahara, re-jittered each held frame ----
-let flow = ori_fbm2(pxy.x / 140.0, pxy.y / 140.0, 2, 5u) * 6.2831;
-let dir0 = vec2<f32>(cos(flow), sin(flow));
-let along0 = dot(pxy, dir0);
-let across0 = dot(pxy, vec2<f32>(-dir0.y, dir0.x));
-let kx = floor(along0 / (dab * 2.2));
-let ky = floor(across0 / dab);
-let h1 = ori_hash2(kx + tick * 13.0, ky, 3u);
-let h2 = ori_hash2(kx, ky - tick * 7.0, 9u);
-let jit = (dir0 * (h1 - 0.5) * 2.0 + vec2<f32>(-dir0.y, dir0.x) * (h2 - 0.5)) * wob;
+// plants (green/yellow-green, saturated): upright dab cells, ragged brush edges that
+// re-paint a few times a second; walls, road and sky keep the calm static dabs
+let c0 = ctx.color.rgb;
+let cmx = max(c0.r, max(c0.g, c0.b));
+let cmn = min(c0.r, min(c0.g, c0.b));
+let plant = smoothstep(0.0, 0.05, c0.g - c0.b) * smoothstep(0.08, 0.24, (cmx - cmn) / (cmx + 0.0001));
+let tick = floor(ctx.time_seconds * boil) * step(0.5, plant);
+let flow0 = ori_fbm2(pxy.x / 140.0, pxy.y / 140.0, 2, 5u) * 6.2831;
+let flow = mix(flow0, 1.5708 + (flow0 - 3.1416) * 0.12, plant);
+let dir = vec2<f32>(cos(flow), sin(flow));
+let along = dot(pxy, dir);
+let across = dot(pxy, vec2<f32>(-dir.y, dir.x));
+let cx = floor(along / (dab * 2.2));
+let cy = floor(across / dab);
+let h1 = ori_hash2(cx + tick * 13.0, cy, 3u);
+let h2 = ori_hash2(cx, cy - tick * 7.0, 9u);
+let jit = (dir * (h1 - 0.5) * 2.0 + vec2<f32>(-dir.y, dir.x) * (h2 - 0.5)) * (wob + plantWob * plant);
 let uv0 = ctx.uv + jit / res;
 let px = vec2<f32>(stride) / res;
 var m0 = vec3<f32>(0.0); var m1 = vec3<f32>(0.0); var m2 = vec3<f32>(0.0); var m3 = vec3<f32>(0.0);
 var q0 = vec3<f32>(0.0); var q1 = vec3<f32>(0.0); var q2 = vec3<f32>(0.0); var q3 = vec3<f32>(0.0);
-for (var j: i32 = -2; j <= 2; j = j + 1) {
-    for (var i: i32 = -2; i <= 2; i = i + 1) {
-        let o = dir0 * f32(i) * 1.4 + vec2<f32>(-dir0.y, dir0.x) * f32(j) * 0.7;
+for (var j: i32 = -3; j <= 3; j = j + 1) {
+    for (var i: i32 = -3; i <= 3; i = i + 1) {
+        let o = dir * f32(i) * 1.4 + vec2<f32>(-dir.y, dir.x) * f32(j) * 0.7;
         let c = ori_screen_color(uv0 + o * px).rgb;
         let c2 = c * c;
         let a0 = select(0.0, 1.0, i <= 0 && j <= 0);
@@ -937,7 +935,7 @@ for (var j: i32 = -2; j <= 2; j = j + 1) {
         m3 += c * a3; q3 += c2 * a3;
     }
 }
-let n = 9.0;
+let n = 16.0;
 let e0 = m0 / n; let e1 = m1 / n; let e2 = m2 / n; let e3 = m3 / n;
 let v0 = abs(q0 / n - e0 * e0); let v1 = abs(q1 / n - e1 * e1); let v2 = abs(q2 / n - e2 * e2); let v3 = abs(q3 / n - e3 * e3);
 let w0 = 1.0 / pow(v0.r + v0.g + v0.b + 0.0004, 2.0);
@@ -945,81 +943,15 @@ let w1 = 1.0 / pow(v1.r + v1.g + v1.b + 0.0004, 2.0);
 let w2 = 1.0 / pow(v2.r + v2.g + v2.b + 0.0004, 2.0);
 let w3 = 1.0 / pow(v3.r + v3.g + v3.b + 0.0004, 2.0);
 let paint = (e0 * w0 + e1 * w1 + e2 * w2 + e3 * w3) / (w0 + w1 + w2 + w3);
-var col = mix(ctx.color.rgb, paint, amt);
-// ---- brush strokes: one per jittered grid cell, topmost wins ----
-let cellSz = dab * 2.0;
-let gcell = floor(pxy / cellSz);
-let light = vec2<f32>(-0.6, -0.8);
-var best = -1.0;
-var sCol = vec3<f32>(0.0);
-var sA = 0.0;
-for (var cj: i32 = -1; cj <= 1; cj = cj + 1) {
-    for (var ci: i32 = -1; ci <= 1; ci = ci + 1) {
-        let cell = gcell + vec2<f32>(f32(ci), f32(cj));
-        let r0 = ori_hash2(cell.x, cell.y, 11u);
-        let r1 = ori_hash2(cell.y, cell.x, 23u);
-        let home = (cell + vec2<f32>(0.2 + r0 * 0.6, 0.2 + r1 * 0.6)) * cellSz;
-        let hc = ori_screen_color(home / res).rgb;
-        let hmx = max(hc.r, max(hc.g, hc.b));
-        let hmn = min(hc.r, min(hc.g, hc.b));
-        let plant = smoothstep(0.0, 0.05, hc.g - hc.b) * smoothstep(0.08, 0.24, (hmx - hmn) / (hmx + 0.0001));
-        let mv = mix(calm, 0.3, plant);
-        let hx = ori_hash2(cell.x + tick * 17.31, cell.y, 13u) - 0.5;
-        let hy = ori_hash2(cell.x, cell.y + tick * 11.7, 17u) - 0.5;
-        let ha = ori_hash2(cell.x - tick * 7.3, cell.y + tick * 3.1, 19u) - 0.5;
-        let hv = ori_hash2(cell.x + tick * 5.9, cell.y - tick * 2.3, 41u) - 0.5;
-        let center = home + vec2<f32>(hx, hy) * cellSz * 0.8 * mv;
-        let g = dab * 0.7;
-        let lx1 = dot(ori_screen_color((center + vec2<f32>(g, 0.0)) / res).rgb, lw);
-        let lx0 = dot(ori_screen_color((center - vec2<f32>(g, 0.0)) / res).rgb, lw);
-        let ly1 = dot(ori_screen_color((center + vec2<f32>(0.0, g)) / res).rgb, lw);
-        let ly0 = dot(ori_screen_color((center - vec2<f32>(0.0, g)) / res).rgb, lw);
-        var sc = ori_screen_color(center / res).rgb;
-        let grad = vec2<f32>(lx1 - lx0, ly1 - ly0);
-        let ge = smoothstep(0.015, 0.07, length(grad));
-        // orientation: along the local edge; plants default upright, elsewhere a flow field
-        let edgeA = atan2(grad.y, grad.x) + 1.5708;
-        let flowA = ori_fbm2(center.x / 180.0, center.y / 180.0, 2, 5u) * 6.2831;
-        let baseA = mix(flowA, 1.5708 + (r0 - 0.5) * 0.5, plant);
-        let dbl = mix(vec2<f32>(cos(2.0 * baseA), sin(2.0 * baseA)), vec2<f32>(cos(2.0 * edgeA), sin(2.0 * edgeA)), ge * (1.0 - 0.7 * plant));
-        let ang = 0.5 * atan2(dbl.y, dbl.x) + ha * 0.6 * mv;
-        let sd = vec2<f32>(cos(ang), sin(ang));
-        let sn = vec2<f32>(-sd.y, sd.x);
-        let slen = dab * mix(2.0, 2.4, plant) * (0.8 + 0.4 * r1);
-        let swid = dab * mix(0.9, 0.75, plant) * (0.8 + 0.4 * r0);
-        let dd = pxy - center;
-        let u = dot(dd, sd) / slen;
-        let v = dot(dd, sn) / swid;
-        // loaded brush: round head at u=-1, dry tapering tail toward u=+1
-        let wu = sqrt(max(1.0 - u * u, 0.0)) * mix(1.0, mix(0.9, 0.75, plant), smoothstep(-0.3, 1.0, u));
-        let av = abs(v) / max(wu, 0.001);
-        let rag = ori_hash2(floor(v * 6.0 + 7.0), cell.x + cell.y * 31.0 + tick * mv, 47u);
-        let cover = (1.0 - smoothstep(0.45, 1.0, av)) * step(abs(u), 1.0) * step(rag * smoothstep(0.2, 1.0, u), 0.75);
-        // broken colour: each stroke slightly lighter/warmer or darker/cooler
-        sc = sc * (1.0 + hv * 0.1);
-        sc = mix(sc, sc * vec3<f32>(1.06, 1.0, 0.88), max(hv, 0.0) * 1.2);
-        sc = mix(sc, sc * vec3<f32>(0.9, 0.95, 1.1), max(-hv, 0.0) * 1.2);
-        // bristle streaks run along the stroke; impasto ridge catches upper-left light
-        let bristle = 0.91 + 0.16 * ori_hash2(floor(v * 7.0 + 7.0), cell.x * 7.0 + cell.y, 43u);
-        let ridge = -v * dot(sn, light) * (1.0 - av);
-        sc = sc * bristle * (1.0 + impasto * 0.14 * ridge);
-        let pri = ori_hash2(cell.x + tick * mv * 3.0, cell.y - tick * mv, 37u);
-        let take = cover > 0.02 && pri > best;
-        best = select(best, pri, take);
-        sCol = select(sCol, sc, vec3<bool>(take));
-        sA = select(sA, cover, take);
-    }
-}
-let d = ori_screen_depth_m(ctx.uv);
-let sky = step(2900.0, d);
-col = mix(col, sCol, sA * sAmt * (1.0 - 0.5 * sky));
-// ---- Monet grade: violet shadows, warm cream lights, soft distance haze ----
+let streak = 0.98 + 0.04 * ori_hash2(floor(along / 2.0), cy, 21u);
+var col = mix(ctx.color.rgb, paint * streak, amt);
 let l = dot(col, vec3<f32>(0.2126, 0.7152, 0.0722));
 let sh = 1.0 - smoothstep(0.05, 0.45, l);
 let hi = smoothstep(0.55, 0.95, l);
 col = mix(col, col * vec3<f32>(0.95, 0.96, 1.04) + vec3<f32>(0.025, 0.021, 0.035), sh * grade);
 col = mix(col, col * vec3<f32>(1.06, 1.0, 0.86), hi * grade);
-let f = smoothstep(25.0, 300.0, d) * (1.0 - sky) * haze;
+let d = ori_screen_depth_m(ctx.uv);
+let f = smoothstep(25.0, 300.0, d) * (1.0 - step(2900.0, d)) * haze;
 col = mix(col, vec3<f32>(0.86, 0.82, 0.86), f * 0.4);
 out.color = vec4<f32>(col, 1.0);
 #end
@@ -1034,13 +966,11 @@ event OnSpawned {
     SetMaterialParameterNumber(Material.MonetPaint, 0, 0.65)
     SetMaterialParameterNumber(Material.MonetPaint, 1, 0.35)
     SetMaterialParameterNumber(Material.MonetPaint, 2, 0.7)
-    SetMaterialParameterNumber(Material.MonetPaint, 3, 2.2)
-    SetMaterialParameterNumber(Material.MonetPaint, 4, 11)
+    SetMaterialParameterNumber(Material.MonetPaint, 3, 2.6)
+    SetMaterialParameterNumber(Material.MonetPaint, 4, 8)
     SetMaterialParameterNumber(Material.MonetPaint, 5, 0.65)
-    SetMaterialParameterNumber(Material.MonetPaint, 6, 2)
-    SetMaterialParameterNumber(Material.MonetPaint, 7, 0.45)
-    SetMaterialParameterNumber(Material.MonetPaint, 8, 0.5)
-    SetMaterialParameterNumber(Material.MonetPaint, 9, 0.1)
+    SetMaterialParameterNumber(Material.MonetPaint, 6, 3)
+    SetMaterialParameterNumber(Material.MonetPaint, 7, 3)
     SetMaterialParameterNumber(Material.Ps1Screen, 0, 240)
     SetMaterialParameterNumber(Material.Ps1Screen, 1, 32)
     SetMaterialParameterNumber(Material.Ps1Screen, 2, 1)
