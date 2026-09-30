@@ -33,14 +33,14 @@ right = 1 - sstep(760, 960, xx + (rows - 0.5) * 200 + (fbm(xx / 30.0, yy / 25.0,
 left = sstep(22, 44, xx + (rows - 0.5) * 16)
 top = sstep(30, 46, yy + (fbm(xx / 45.0, 0 * yy, 11) - 0.5) * 22)
 bot = 1 - sstep(338, 358, yy + (fbm(xx / 40.0, 0 * yy + 3, 12) - 0.5) * 26)
-alpha = 0.9 * right * left * top * bot
+alpha = 0.97 * right * left * top * bot
 # dry-brush breaks inside the fading edges only
-dry = sstep(0.25, 0.75, alpha / 0.9)
-alpha *= np.clip(0.55 + 0.45 * dry + (rows - 0.5) * (1 - dry) * 1.2, 0, 1)
+dry = sstep(0.25, 0.75, alpha / 0.97)
+alpha *= np.clip(0.6 + 0.4 * dry + (rows - 0.5) * (1 - dry) * 1.2, 0, 1)
 # slate colour: darker toward the left/center, a little cooler and lighter toward the fading edge
 mott = fbm(xx / 140.0, yy / 90.0, 21) - 0.5
-base = np.array([0.23, 0.26, 0.34], np.float32)
-light = np.array([0.30, 0.33, 0.42], np.float32)
+base = np.array([0.20, 0.23, 0.31], np.float32)
+light = np.array([0.27, 0.30, 0.39], np.float32)
 t = np.clip(xx / 1000.0 * 0.6 + mott * 0.5 + (rows - 0.5) * 0.25, 0, 1)[..., None]
 rgb = base * (1 - t) + light * t
 rgb *= (1 + (rows - 0.5) * 0.06)[..., None]
@@ -70,11 +70,11 @@ def line(img, x0, y0, x1, y1, w, col, a, fade_from=None):
                     img[py, px, :3] = (np.array(col) * cov + img[py, px, :3] * ca * (1 - cov)) / max(oa, 1e-4)
                     img[py, px, 3] = oa
 
-gold = (0.82, 0.67, 0.40)
-line(img, 16, 22, 16, 362, 3.0, gold, 0.95)                    # left
-line(img, 16, 22, 820, 22, 3.0, gold, 0.95, fade_from=0.72)    # top, fading out to the right
-line(img, 16, 362, 330, 362, 3.0, gold, 0.9, fade_from=0.6)    # bottom, shorter
+gold = (0.88, 0.73, 0.45)
+line(img, 16, 22, 16, 362, 3.6, gold, 1.0)                    # left
+line(img, 16, 22, 820, 22, 3.6, gold, 1.0, fade_from=0.72)    # top, fading out to the right
+line(img, 16, 362, 330, 362, 3.6, gold, 0.95, fade_from=0.6)    # bottom, shorter
 for (cx, cy) in [(16, 22), (16, 362)]:                          # corner dots
     line(img, cx - 4, cy, cx + 4, cy, 5.0, gold, 1.0)
-Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8), "RGBA").save("quest_panel.png")
+Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8), "RGBA").save("quest_panel_v2.png")
 print("ok")
