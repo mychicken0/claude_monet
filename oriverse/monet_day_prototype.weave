@@ -29,7 +29,7 @@ knob SetContrast = 0.96
 knob SetBloomIntensity = 0.25
 knob SetSsrMode = Off
 section "Atmosphere"
-knob SetDistanceFogEnabled = 1
+knob SetDistanceFogEnabled = 0
 knob SetFogColor = #E4DACC
 knob SetFogStartDistance = 30
 knob SetFogEndDistance = 900
@@ -60,7 +60,7 @@ knob SetGrassBendStrengthPercent = 170
 knob SetGrassTerrainActiveDistanceM = 32
 knob SetTreeLodSwitchDistanceM = 20
 section "River"
-knob SetWaterEnabled = 1
+knob SetWaterEnabled = 0
 knob SetWaterSeaLevelCm = -50
 knob SetWaterAmplitudeCm = 1
 knob SetWaterShallowColor = #6E9C8E
@@ -99,9 +99,6 @@ event OnSpawned {
     t.SetTerrainMaterial(Material.MonetGrassTex)
     t.SetTerrainLayers(Material.MonetPathTex, None, None)
     t.SetTerrainGrassVisible(false)
-    // short, slow ripples along the river break the mirror into horizontal bands
-    SetWaterWaves(1, 70, 0.45, 90, 35)
-    SetWaterPlanarReflection(0.9, 1.6)
 }
 #end
 display World : MonetWorld { visible = false }
@@ -885,8 +882,7 @@ out.geo = part(MonetFieldWall, len: 1400);
 // then a Kuwahara filter flattens colour into paint patches.
 // params: 0 paint mix, 1 grade, 2 haze, 3 kuwahara stride px,
 //         4 dab cell px, 5 edge wobble px, 6 re-paints per second on plants,
-//         7 extra brush wobble px on plants (grass, leaves, flowers only),
-//         8 sky broken colour (cerulean / lilac / cream dabs side by side).
+//         7 extra brush wobble px on plants (grass, leaves, flowers only).
 material MonetPaint { shader = "MonetPaintPass" }
 #shader MonetPaintPass
 let amt = mat.params4[0].x;
@@ -952,14 +948,8 @@ let hi = smoothstep(0.55, 0.95, l);
 col = mix(col, col * vec3<f32>(0.95, 0.96, 1.04) + vec3<f32>(0.025, 0.021, 0.035), sh * grade);
 col = mix(col, col * vec3<f32>(1.06, 1.0, 0.86), hi * grade);
 let d = ori_screen_depth_m(ctx.uv);
-let f = smoothstep(25.0, 300.0, d) * (1.0 - step(2900.0, d)) * haze;
+let f = smoothstep(25.0, 300.0, d) * (1.0 - step(1500.0, d)) * haze;
 col = mix(col, vec3<f32>(0.86, 0.82, 0.86), f * 0.4);
-// the sky is laid in wide horizontal dabs of cerulean, lilac and cream, like the water under it
-let skyRow = floor(pxy.y / (dab * 1.4));
-let skyCol = floor((pxy.x + ori_hash2(skyRow, 3.0, 63u) * dab * 3.5) / (dab * 3.5));
-let skyPick = ori_hash2(skyCol, skyRow, 61u);
-let skyTint = select(select(vec3<f32>(1.06, 1.03, 0.93), vec3<f32>(0.93, 0.99, 1.08), skyPick < 0.62), vec3<f32>(1.04, 0.96, 1.07), skyPick < 0.3);
-col = mix(col, col * skyTint, step(2900.0, d) * mat.params4[2].x);
 out.color = vec4<f32>(col, 1.0);
 #end
 
@@ -978,7 +968,6 @@ event OnSpawned {
     SetMaterialParameterNumber(Material.MonetPaint, 5, 0.65)
     SetMaterialParameterNumber(Material.MonetPaint, 6, 4)
     SetMaterialParameterNumber(Material.MonetPaint, 7, 3)
-    SetMaterialParameterNumber(Material.MonetPaint, 8, 1)
     SetMaterialParameterNumber(Material.Ps1Screen, 0, 240)
     SetMaterialParameterNumber(Material.Ps1Screen, 1, 32)
     SetMaterialParameterNumber(Material.Ps1Screen, 2, 1)
@@ -1063,65 +1052,170 @@ object GrassBTownN { model = "scatter.GrassTuftsB" position = (5130, 1225, -300)
 object GrassATownS { model = "scatter.GrassTuftsA" position = (5130, -1225, -300) size = (4540, 1950, 1200) }
 object GrassBTownS { model = "scatter.GrassTuftsB" position = (5130, -1225, -300) size = (4540, 1950, 1200) }
 
-// ---- painted river: a layer of opaque brush dabs laid just over the engine water.
-// Gaps between dabs let the rippled reflection show through; the dabs carry the
-// reflected sky (cerulean / lilac), the banks' greens near the edges and cream-gold
-// glints where the sun would reflect. Dabs sit on a grid around the viewer (rows =
-// distance, cells = direction), so strokes lie horizontal on screen like a painter's,
-// keep one brush size at any distance, and each re-lays on its own beat.
-// params: 0 re-lays per second, 1 coverage 0..1, 2 dab length m, 3 dab height (log rows),
-//         4-6 sky blue, 8-10 lilac, 12-14 bank green, 16-18 glint cream, 7 glint glow.
-#texture RiverPaintTex
+// ---- painted river: our own water surface (engine water is off). Every horizontal stroke
+// is one flat facet of rippled water: its own small tilt decides what it mirrors - the
+// painted sky (same skyPaint as the dome), or the band of trees and grass along the banks -
+// so reflections break into horizontal strokes like Monet's. Looking down you see the
+// deep green-teal body, at a glance the mirror; ripples throw back cream sun glints.
+// Lit, so the bridge and trees cast their (lavender) shadows on it. Strokes sit on a grid
+// around the viewer (rows = distance, cells = direction): horizontal on screen, one brush
+// size at any distance, re-laid on their own beat (few frames a second).
+// params: 0 re-lays per second, 2 stroke length m, 3 stroke height (log rows),
+//         4 ripple tilt across, 5 ripple tilt along view, 6 mirror when looking straight down,
+//         7 brightness, 8-10 body colour.
+#texture RiverWaterTex
 mapping = uv;
-render_mode = cutout;
 size = 16;
-out.color = color("#8FB0C8");
-out.alpha = 1.0;
-out.orm = orm(occlusion: 1.0, roughness: 0.9, metallic: 0.0);
+out.color = color("#6F95A8");
+out.orm = orm(occlusion: 1.0, roughness: 0.95, metallic: 0.0);
 #end
-material RiverPaint { base = "RiverPaintTex" shader = "RiverPaintDabs" param0 = 3 param1 = 0.6 param2 = 1.5 param3 = 0.06 param4 = 0.34 param5 = 0.48 param6 = 0.64 param7 = 0.6 param8 = 0.48 param9 = 0.44 param10 = 0.60 param12 = 0.19 param13 = 0.30 param14 = 0.23 param16 = 0.95 param17 = 0.84 param18 = 0.58 }
-#shader RiverPaintDabs
+material RiverWater { base = "RiverWaterTex" shader = "PaintedRiver" param0 = 3 param2 = 1.2 param3 = 0.05 param4 = 0.10 param5 = 0.30 param6 = 0.35 param7 = 0.75 param8 = 0.10 param9 = 0.19 param10 = 0.18 }
+#shader PaintedRiver
+@module {
+fn skyPaint(d: vec3<f32>, sun: vec3<f32>, t: f32) -> vec3<f32> {
+    // one flat colour per horizontal stroke: strokes are ~1 deg tall, ~4 deg long
+    let el = clamp(d.y, -0.3, 1.0);
+    let az = atan2(d.z, d.x);
+    let row = floor(el / 0.017);
+    let rs = ori_hash2(row, 1.0, 101u);
+    let alen = 0.075 / max(sqrt(max(1.0 - el * el, 0.0)), 0.25);
+    let col = floor(az / alen + rs * 3.0);
+    let h1 = ori_hash2(col, row, 103u);
+    let h2 = ori_hash2(row, col, 107u);
+    let e = (row + 0.5) * 0.017;
+    let a = (col + 0.5 - rs * 3.0) * alen;
+    // warm cream at the horizon, lilac-blue in the middle, cerulean overhead
+    var c = mix(vec3<f32>(0.94, 0.87, 0.80), vec3<f32>(0.64, 0.72, 0.88), smoothstep(0.0, 0.2, e));
+    c = mix(c, vec3<f32>(0.38, 0.53, 0.82), smoothstep(0.2, 0.85, e));
+    // broken colour: cerulean, lilac and cream strokes side by side
+    let tint = select(select(vec3<f32>(1.05, 1.02, 0.92), vec3<f32>(0.92, 0.99, 1.07), h1 < 0.6), vec3<f32>(1.04, 0.94, 1.07), h1 < 0.27);
+    c = c * tint * (0.95 + h2 * 0.1);
+    // cumulus banks made of the same strokes; cream where the sun lights them, lilac-grey beneath
+    let p = (1.0 - e) * 2.4;
+    let cx = cos(a + t * 0.003) * p;
+    let cz = sin(a + t * 0.003) * p;
+    let cl = ori_fbm2(cx * 1.7 + 3.0, cz * 1.7 - 5.0, 4, 111u);
+    let band = smoothstep(0.02, 0.1, e) * (1.0 - smoothstep(0.5, 0.85, e));
+    let cloud = step(0.56, cl + (h2 - 0.5) * 0.06) * band;
+    let core = smoothstep(0.56, 0.7, cl);
+    let lit = 0.45 + 0.55 * max(dot(normalize(vec3<f32>(cos(a), 0.4, sin(a))), sun), 0.0);
+    let cloudCol = mix(vec3<f32>(0.70, 0.68, 0.82), vec3<f32>(1.0, 0.95, 0.86), clamp(core * 0.6 + lit * 0.6, 0.0, 1.0));
+    c = mix(c, cloudCol * (0.97 + h1 * 0.06), cloud);
+    // warm glow toward the sun
+    let g = pow(max(dot(d, sun), 0.0), 10.0);
+    c = mix(c, vec3<f32>(1.0, 0.93, 0.76), g * 0.45);
+    return c;
+}
+fn worldReflect(r: vec3<f32>, sun: vec3<f32>, t: f32) -> vec3<f32> {
+    // below the bank skyline the water mirrors trees and meadow, above it the sky
+    let az = atan2(r.z, r.x);
+    let skyline = 0.06 + 0.07 * ori_fbm2(az * 2.5, 7.0, 3, 121u);
+    let k = clamp(r.y / skyline, 0.0, 1.0);
+    let hb = ori_hash2(floor(az * 45.0), floor(r.y * 70.0), 123u);
+    var bank = mix(vec3<f32>(0.11, 0.19, 0.12), vec3<f32>(0.36, 0.46, 0.22), k);
+    bank = mix(bank, vec3<f32>(0.34, 0.31, 0.46), step(0.72, hb) * 0.6);
+    bank = mix(bank, vec3<f32>(0.62, 0.56, 0.30), step(0.9, hb) * 0.5);
+    return select(skyPaint(r, sun, t), bank, r.y < skyline);
+}
+}
 let fps = max(mat.params4[0].x, 1.0);
 let w = ctx.world_pos;
-// viewer position held on a 1.5 m grid so the dabs do not slide while walking
-let cam = floor(u_camera.camera_position / 1.5) * 1.5;
-let q = vec2<f32>(w.x - cam.x, w.z - cam.z);
+// viewer held on a 1.5 m grid so strokes do not slide while walking
+let camq = floor(u_camera.camera_position / 1.5) * 1.5;
+let q = vec2<f32>(w.x - camq.x, w.z - camq.z);
 let r = max(length(q), 0.5);
 let lr = log(r) / mat.params4[0].w;
 let row = floor(lr);
 let arc = atan2(q.y, q.x) * r;
-let len = mat.params4[0].z * (0.6 + r * 0.06);
+let len = mat.params4[0].z * (0.6 + r * 0.05);
 let shift = ori_hash2(row, 7.0, 71u) * len;
 let cell = floor((arc + shift) / len);
 let beat = floor(u_camera.time_seconds * fps + ori_hash2(cell, row, 73u));
-let hp = ori_hash2(cell + beat * 17.0, row, 75u);
-let hc = ori_hash2(cell, row + beat * 11.0, 77u);
-let hs = ori_hash2(cell - beat * 5.0, row + beat * 3.0, 83u);
-// one long, thin, tapering horizontal stroke per cell: random length, height and place
-let u = ((fract((arc + shift) / len) * 2.0 - 1.0) + (hp - 0.5) * 0.6) / (0.45 + hs * 0.55);
-let vc = 0.5 + (ori_hash2(cell, row - beat * 7.0, 85u) - 0.5) * 0.5;
-let taper = 1.0 - 0.55 * smoothstep(-0.2, 1.0, u);
-let v = (fract(lr) - vc) / ((0.14 + hs * 0.14) * taper);
-let rag = ori_hash2(floor(u * 5.0), cell + row * 13.0 + beat, 79u) * 0.3;
-let keep = (u * u + v * v * (1.0 + rag)) < 1.0 && hp < mat.params4[0].y;
-// colour: reflected sky, lilac, the banks' greens near the edges, sun glints
-let edge = 1.0 - smoothstep(0.0, 0.28, min(min(ctx.uv.x, 1.0 - ctx.uv.x), min(ctx.uv.y, 1.0 - ctx.uv.y)));
-let vdir = normalize(w - u_camera.camera_position);
-let refl = reflect(vdir, vec3<f32>(0.0, 1.0, 0.0));
-let glint = pow(max(dot(refl, normalize(u_camera.sun_direction.xyz)), 0.0), 6.0);
-var col = select(mat.params4[1].xyz, mat.params4[2].xyz, hc < 0.35);
-col = select(col, mat.params4[3].xyz, hc < 0.12 + edge * 0.8);
-let isGlint = hc > 1.0 - glint * 0.8;
-col = select(col, mat.params4[4].xyz, isGlint);
-col = col * (0.75 + ori_hash2(cell, row, 81u) * 0.35);
-out.base_color = vec4<f32>(col, select(0.0, 1.0, keep));
+let j1 = ori_hash2(cell + beat * 17.0, row, 75u) - 0.5;
+let j2 = ori_hash2(cell, row + beat * 11.0, 77u) - 0.5;
+let j3 = ori_hash2(cell - beat * 5.0, row + beat * 3.0, 83u);
+// each stroke = one tilted facet of rippled water
+let n = normalize(vec3<f32>(j1 * mat.params4[1].x, 1.0, j2 * mat.params4[1].y));
+let v = normalize(w - u_camera.camera_position);
+let sun = normalize(u_camera.sun_direction.xyz);
+var rf = reflect(v, n);
+rf.y = abs(rf.y);
+let refl = worldReflect(rf, sun, u_camera.time_seconds);
+let cosv = clamp(-v.y, 0.0, 1.0);
+let fres = mix(mat.params4[1].z, 1.0, pow(1.0 - cosv, 4.0));
+var col = mix(mat.params4[2].xyz, refl, fres);
+// ripples that catch the sun: cream-gold strokes
+let g = pow(max(dot(rf, sun), 0.0), 40.0);
+col = mix(col, vec3<f32>(1.0, 0.92, 0.72), step(0.55, g + j3 * 0.2));
+col = col * (0.93 + j3 * 0.14);
+out.base_color = vec4<f32>(col * mat.params4[1].w, 1.0);
 out.world_normal = vec3<f32>(0.0, 1.0, 0.0);
-out.orm = vec4<f32>(1.0, 0.95, 0.0, select(0.0, ori_emission(mat.params4[1].w), isGlint));
+out.orm = vec4<f32>(1.0, 0.95, 0.0, 0.0);
 #end
-#mesh RiverPaintStrip
-out.geo = ribbon_path(points: [(-250, -40000, 0, 900), (-200, -25000, 0, 900), (-100, -10000, 0, 900), (0, 0, 0, 900), (60, 10000, 0, 900), (100, 25000, 0, 900), (-100, 40000, 0, 900)], normal: (0, 0, 1), two_sided: "no", material: "RiverPaint");
+#mesh RiverSurface
+out.geo = ribbon_path(points: [(-250, -40000, 0, 1400), (-200, -25000, 0, 1400), (-100, -10000, 0, 1400), (0, 0, 0, 1400), (60, 10000, 0, 1400), (100, 25000, 0, 1400), (-100, 40000, 0, 1400)], normal: (0, 0, 1), two_sided: "no", material: "RiverWater");
 #end
-display RiverPaintLayer { model = "mesh.RiverPaintStrip" position = (2300, 0, -46) }
+display River { model = "mesh.RiverSurface" position = (2300, 0, -50) }
+
+// ---- painted sky: a dome painted stroke by stroke (no photo sky, no screen filter).
+// The mesh is a 480 m sphere; its vertex hook pushes it out to wrap the camera ~3 km away,
+// so it is always behind everything. Unlit, casts no shadow. The river reflects the
+// same painting (skyPaint is shared by PaintedRiver), so sky and water always agree.
+#texture SkyDomeTex
+mapping = uv;
+render_mode = cutout_twosided;
+size = 16;
+out.color = color("#A8BCDC");
+out.alpha = 1.0;
+#end
+material SkyDome { base = "SkyDomeTex" shader = "PaintedSky" lighting = "unlit" }
+#shader PaintedSky
+@module {
+fn skyPaint(d: vec3<f32>, sun: vec3<f32>, t: f32) -> vec3<f32> {
+    // one flat colour per horizontal stroke: strokes are ~1 deg tall, ~4 deg long
+    let el = clamp(d.y, -0.3, 1.0);
+    let az = atan2(d.z, d.x);
+    let row = floor(el / 0.017);
+    let rs = ori_hash2(row, 1.0, 101u);
+    let alen = 0.075 / max(sqrt(max(1.0 - el * el, 0.0)), 0.25);
+    let col = floor(az / alen + rs * 3.0);
+    let h1 = ori_hash2(col, row, 103u);
+    let h2 = ori_hash2(row, col, 107u);
+    let e = (row + 0.5) * 0.017;
+    let a = (col + 0.5 - rs * 3.0) * alen;
+    // warm cream at the horizon, lilac-blue in the middle, cerulean overhead
+    var c = mix(vec3<f32>(0.94, 0.87, 0.80), vec3<f32>(0.64, 0.72, 0.88), smoothstep(0.0, 0.2, e));
+    c = mix(c, vec3<f32>(0.38, 0.53, 0.82), smoothstep(0.2, 0.85, e));
+    // broken colour: cerulean, lilac and cream strokes side by side
+    let tint = select(select(vec3<f32>(1.05, 1.02, 0.92), vec3<f32>(0.92, 0.99, 1.07), h1 < 0.6), vec3<f32>(1.04, 0.94, 1.07), h1 < 0.27);
+    c = c * tint * (0.95 + h2 * 0.1);
+    // cumulus banks made of the same strokes; cream where the sun lights them, lilac-grey beneath
+    let p = (1.0 - e) * 2.4;
+    let cx = cos(a + t * 0.003) * p;
+    let cz = sin(a + t * 0.003) * p;
+    let cl = ori_fbm2(cx * 1.7 + 3.0, cz * 1.7 - 5.0, 4, 111u);
+    let band = smoothstep(0.02, 0.1, e) * (1.0 - smoothstep(0.5, 0.85, e));
+    let cloud = step(0.56, cl + (h2 - 0.5) * 0.06) * band;
+    let core = smoothstep(0.56, 0.7, cl);
+    let lit = 0.45 + 0.55 * max(dot(normalize(vec3<f32>(cos(a), 0.4, sin(a))), sun), 0.0);
+    let cloudCol = mix(vec3<f32>(0.70, 0.68, 0.82), vec3<f32>(1.0, 0.95, 0.86), clamp(core * 0.6 + lit * 0.6, 0.0, 1.0));
+    c = mix(c, cloudCol * (0.97 + h1 * 0.06), cloud);
+    // warm glow toward the sun
+    let g = pow(max(dot(d, sun), 0.0), 10.0);
+    c = mix(c, vec3<f32>(1.0, 0.93, 0.76), g * 0.45);
+    return c;
+}
+}
+@vertex {
+    ctx.world_pos = u_camera.camera_position + normalize(ctx.world_pos) * 2980.0;
+}
+let d = normalize(ctx.world_pos - u_camera.camera_position);
+out.base_color = vec4<f32>(skyPaint(d, normalize(u_camera.sun_direction.xyz), u_camera.time_seconds), 1.0);
+#end
+#mesh SkyDomeMesh
+out.geo = sphere(radius: 24000, segments: 48, material: "SkyDome");
+#end
+display SkyDomeShell { model = "mesh.SkyDomeMesh" position = (0, 0, -24000) cast_shadow = false }
 
 // ---- painted sky (clouds ring the valley) ----
 display Cloud1 { model = "mesh.CloudCard" material = "SkyCloudA" position = (63000, 0, 18000) rotation = (0, 0, 90) }
