@@ -101,6 +101,20 @@ event OnSpawned {
     t.SetTerrainGrassVisible(true)
     t.SetTerrainGrassStyle(1)
 }
+// Hand-painted animation for grass and river: the engine's smooth wind and wave
+// motion is frozen (speed 0) and a new pose is 'painted' 4 times a second by
+// re-rolling wind strength / wave size and the river's wave direction.
+event OnWorldReady {
+    SetGrassWindSpeedPercent(0)
+    var Step = 0
+    forever {
+        Wait(0.25)
+        Step = Step + 1
+        SetGrassWindStrengthCm(3 + Hash2(Step, 1, 7) * 4)
+        SetGrassWavePeriodCm(550 + Hash2(Step, 2, 7) * 350)
+        SetWaterWaves(3, 300, 0.35, 190 + Hash2(Step, 3, 7) * 60, 0)
+    }
+}
 #end
 display World : MonetWorld { visible = false }
 
@@ -969,7 +983,7 @@ event OnSpawned {
     SetMaterialParameterNumber(Material.MonetPaint, 3, 2.6)
     SetMaterialParameterNumber(Material.MonetPaint, 4, 8)
     SetMaterialParameterNumber(Material.MonetPaint, 5, 0.65)
-    SetMaterialParameterNumber(Material.MonetPaint, 6, 3)
+    SetMaterialParameterNumber(Material.MonetPaint, 6, 4)
     SetMaterialParameterNumber(Material.MonetPaint, 7, 3)
     SetMaterialParameterNumber(Material.Ps1Screen, 0, 240)
     SetMaterialParameterNumber(Material.Ps1Screen, 1, 32)
@@ -1084,13 +1098,13 @@ out.alpha = 1.0;
 out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
 #end
 
-material GrassBlade { base = "PlantCardTex" shader = "MeadowSway" param0 = 0.10224 param1 = 0.19462 param2 = 0.06480 param4 = 0.57758 param5 = 0.63076 param6 = 0.21586 param7 = 8 }
+material GrassBlade { base = "PlantCardTex" shader = "MeadowSway" param0 = 0.10224 param1 = 0.19462 param2 = 0.06480 param4 = 0.57758 param5 = 0.63076 param6 = 0.21586 param7 = 4 }
 
-material GrassBladeTip { base = "PlantCardTex" shader = "MeadowSway" param0 = 0.57758 param1 = 0.63076 param2 = 0.21586 param7 = 8 }
+material GrassBladeTip { base = "PlantCardTex" shader = "MeadowSway" param0 = 0.57758 param1 = 0.63076 param2 = 0.21586 param7 = 4 }
 
-material GrassBladeDry { base = "PlantCardTex" shader = "MeadowSway" param0 = 0.19462 param1 = 0.21586 param2 = 0.08022 param4 = 0.80695 param5 = 0.68669 param6 = 0.27889 param7 = 8 }
+material GrassBladeDry { base = "PlantCardTex" shader = "MeadowSway" param0 = 0.19462 param1 = 0.21586 param2 = 0.08022 param4 = 0.80695 param5 = 0.68669 param6 = 0.27889 param7 = 4 }
 
-material GrassBladeDryTip { base = "PlantCardTex" shader = "MeadowSway" param0 = 0.80695 param1 = 0.68669 param2 = 0.27889 param7 = 8 }
+material GrassBladeDryTip { base = "PlantCardTex" shader = "MeadowSway" param0 = 0.80695 param1 = 0.68669 param2 = 0.27889 param7 = 4 }
 
 #texture FlowerStemTex color=#5E7A44 roughness=0.85
 
@@ -1102,15 +1116,15 @@ material GrassBladeDryTip { base = "PlantCardTex" shader = "MeadowSway" param0 =
 
 #texture FlowerEyeTex color=#F0B83A roughness=0.8
 
-material FlowerStem { base = "FlowerStemTex" shader = "MeadowSway" param0 = 0.11193 param1 = 0.19462 param2 = 0.05781 param7 = 8 }
+material FlowerStem { base = "FlowerStemTex" shader = "MeadowSway" param0 = 0.11193 param1 = 0.19462 param2 = 0.05781 param7 = 4 }
 
-material PetalWhite { base = "PetalWhiteTex" shader = "MeadowSway" param0 = 0.93011 param1 = 0.88792 param2 = 0.79130 param3 = 1 param4 = 0.11193 param5 = 0.19462 param6 = 0.05781 param8 = 0.55 param7 = 8 }
+material PetalWhite { base = "PetalWhiteTex" shader = "MeadowSway" param0 = 0.93011 param1 = 0.88792 param2 = 0.79130 param3 = 1 param4 = 0.11193 param5 = 0.19462 param6 = 0.05781 param8 = 0.55 param7 = 4 }
 
-material PetalPink { base = "PetalPinkTex" shader = "MeadowSway" param0 = 0.87137 param1 = 0.38643 param2 = 0.53948 param3 = 1 param4 = 0.11193 param5 = 0.19462 param6 = 0.05781 param8 = 0.65 param7 = 8 }
+material PetalPink { base = "PetalPinkTex" shader = "MeadowSway" param0 = 0.87137 param1 = 0.38643 param2 = 0.53948 param3 = 1 param4 = 0.11193 param5 = 0.19462 param6 = 0.05781 param8 = 0.65 param7 = 4 }
 
-material PetalLav { base = "PetalLavTex" shader = "MeadowSway" param0 = 0.39676 param1 = 0.32778 param2 = 0.67244 param3 = 2 param4 = 0.11193 param5 = 0.19462 param6 = 0.05781 param8 = 0.60 param7 = 8 }
+material PetalLav { base = "PetalLavTex" shader = "MeadowSway" param0 = 0.39676 param1 = 0.32778 param2 = 0.67244 param3 = 2 param4 = 0.11193 param5 = 0.19462 param6 = 0.05781 param8 = 0.60 param7 = 4 }
 
-material FlowerEye { base = "FlowerEyeTex" shader = "MeadowSway" param0 = 0.87137 param1 = 0.47932 param2 = 0.04231 param7 = 8 }
+material FlowerEye { base = "FlowerEyeTex" shader = "MeadowSway" param0 = 0.87137 param1 = 0.47932 param2 = 0.04231 param7 = 4 }
 
 // One curved blade (ribbon, tapering to a point).
 #meshpart MonetBlade
