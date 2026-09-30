@@ -86,7 +86,7 @@ def over_px(img, px, py, cov, col):
         img[py, px, :3] = (np.array(col) * cov + img[py, px, :3] * ca * (1 - cov)) / max(oa, 1e-4)
         img[py, px, 3] = oa
 
-def pen(img, pts, w, col, a, seed, wobble=2.2, fade_from=None, dry=0.12):
+def pen(img, pts, w, col, a, seed, wobble=2.2, fade_from=None, dry=0.08):
     # a hand-drawn ink/gold line: the path wanders a little, the width swells and thins,
     # and the nib skips (dry gaps) now and then - never a ruler-straight, even line
     pts = np.asarray(pts, np.float32)
@@ -116,12 +116,15 @@ def pen(img, pts, w, col, a, seed, wobble=2.2, fade_from=None, dry=0.12):
 
 # frame: left side, top (with a faint second stroke that drifts off), short bottom;
 # lines overshoot a little at the corners with a small curl, as if drawn by hand
-pen(img, [(17, 8), (15, 190), (18, 376)], 3.2, gold, 1.0, seed=1)
-pen(img, [(4, 23), (300, 21), (620, 24), (860, 20)], 3.0, gold, 1.0, seed=2, fade_from=0.62)
-pen(img, [(240, 15), (520, 13), (700, 16)], 1.8, gold, 0.6, seed=3, fade_from=0.4, dry=0.25)
-pen(img, [(4, 362), (180, 364), (360, 361)], 2.8, gold, 0.95, seed=4, fade_from=0.5)
+pen(img, [(17, 8), (15, 190), (18, 376)], 4.6, gold, 1.0, seed=1)
+pen(img, [(4, 23), (300, 21), (620, 24), (860, 20)], 4.4, gold, 1.0, seed=2, fade_from=0.62)
+pen(img, [(240, 15), (520, 13), (700, 16)], 2.6, gold, 0.6, seed=3, fade_from=0.4, dry=0.25)
+pen(img, [(4, 362), (180, 364), (360, 361)], 4.0, gold, 0.95, seed=4, fade_from=0.5)
 for (cx, cy, sd) in [(16, 22, 5), (16, 362, 6)]:
     # a small ink knot where the drawn lines cross
     pen(img, [(cx - 2, cy - 1), (cx + 2, cy + 1)], 6.0, gold, 1.0, seed=sd, wobble=0, dry=0.0)
-Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8), "RGBA").save("quest_panel_v4.png")
+# the engine's UI blend treats alpha roughly like a gamma-2.2 value (alpha 0.86 shows as ~0.5),
+# so pre-compensate: store alpha^(1/2.2) and the panel lands at the painted opacity in game
+img[..., 3] = np.clip(img[..., 3], 0, 1) ** (1 / 2.2)
+Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8), "RGBA").save("quest_panel_v5.png")
 print("ok")
