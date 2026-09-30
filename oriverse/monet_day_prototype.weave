@@ -985,8 +985,8 @@ for (var cj: i32 = -1; cj <= 1; cj = cj + 1) {
         let ang = 0.5 * atan2(dbl.y, dbl.x) + ha * 0.6 * mv;
         let sd = vec2<f32>(cos(ang), sin(ang));
         let sn = vec2<f32>(-sd.y, sd.x);
-        let slen = dab * mix(1.3, 2.2, plant) * (0.8 + 0.4 * r1);
-        let swid = dab * mix(1.1, 0.75, plant) * (0.8 + 0.4 * r0);
+        let slen = dab * mix(2.0, 2.4, plant) * (0.8 + 0.4 * r1);
+        let swid = dab * mix(0.9, 0.75, plant) * (0.8 + 0.4 * r0);
         let dd = pxy - center;
         let u = dot(dd, sd) / slen;
         let v = dot(dd, sn) / swid;
@@ -1000,7 +1000,7 @@ for (var cj: i32 = -1; cj <= 1; cj = cj + 1) {
         sc = mix(sc, sc * vec3<f32>(1.06, 1.0, 0.88), max(hv, 0.0) * 1.2);
         sc = mix(sc, sc * vec3<f32>(0.9, 0.95, 1.1), max(-hv, 0.0) * 1.2);
         // bristle streaks run along the stroke; impasto ridge catches upper-left light
-        let bristle = 0.93 + 0.12 * ori_hash2(floor(v * 5.0 + 5.0), cell.x * 7.0 + cell.y, 43u);
+        let bristle = 0.91 + 0.16 * ori_hash2(floor(v * 7.0 + 7.0), cell.x * 7.0 + cell.y, 43u);
         let ridge = -v * dot(sn, light) * (1.0 - av);
         sc = sc * bristle * (1.0 + impasto * 0.14 * ridge);
         let pri = ori_hash2(cell.x + tick * mv * 3.0, cell.y - tick * mv, 37u);
@@ -1035,9 +1035,9 @@ event OnSpawned {
     SetMaterialParameterNumber(Material.MonetPaint, 1, 0.35)
     SetMaterialParameterNumber(Material.MonetPaint, 2, 0.7)
     SetMaterialParameterNumber(Material.MonetPaint, 3, 2.2)
-    SetMaterialParameterNumber(Material.MonetPaint, 4, 7)
+    SetMaterialParameterNumber(Material.MonetPaint, 4, 11)
     SetMaterialParameterNumber(Material.MonetPaint, 5, 0.65)
-    SetMaterialParameterNumber(Material.MonetPaint, 6, 4)
+    SetMaterialParameterNumber(Material.MonetPaint, 6, 2)
     SetMaterialParameterNumber(Material.MonetPaint, 7, 0.45)
     SetMaterialParameterNumber(Material.MonetPaint, 8, 0.5)
     SetMaterialParameterNumber(Material.MonetPaint, 9, 0.1)
