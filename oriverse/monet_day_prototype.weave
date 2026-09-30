@@ -1,4 +1,4 @@
-#image_pin "{\"reference\":\"image.@ghohoh404040.quest_panel_v2#1\",\"asset_id\":\"2h6ZTZAjlIKfXrd07vNFXTw8fJAnpFrT\",\"revision\":1,\"sha256\":\"1e8064e338016348e4a8831e3bd6184a99ef5d4b7576e0d239b0a1f0a2a44bef\",\"size\":186282,\"width\":1024,\"height\":384}"
+#image_pin "{\"reference\":\"image.@ghohoh404040.quest_panel_v5#1\",\"asset_id\":\"YU2Lqlb2CbqEY1FbXpMf9wWvmmyOUd65\",\"revision\":1,\"sha256\":\"a682e941fb0a9577c4364d02bf5da2435778f674bbcd79ea1a017a874652d3a0\",\"size\":299639,\"width\":1024,\"height\":384}"
 #doc_version 3
 #project "Ori.project.@ghohoh404040.claude_monet"
 #artstyle "impressionist plein-air oil painting, Claude Monet palette, broken colour dabs, cream and ochre sunlight, lavender and blue-violet shadows, soft low-poly faceted forms"
@@ -958,7 +958,7 @@ out.color = vec4<f32>(col, 1.0);
 
 // ============================================================
 // HUD: painted panels (scene UI). The panel background is a painted image
-// (oriverse/ui/quest_panel_v2.png, painted by oriverse/ui/paint_panel.py); text is native UI in EB Garamond.
+// (oriverse/ui/quest_panel_v5.png, painted by oriverse/ui/paint_panel.py); text is native UI in EB Garamond.
 // ============================================================
 #svg QuestDiamond size=64
 <svg viewBox="0 0 24 24"><path d="M12 2L22 12L12 22L2 12Z" fill="#E2B04A" stroke="#7A4E18" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 6L17 12L12 18L7 12Z" fill="#F6D98A" opacity="0.6"/></svg>
@@ -976,12 +976,12 @@ func ShowQuest(Title: Text, Goal: Text, Hint: Text) {
 #end
 screenCanvas QuestPanel : QuestHud {
     frame QuestFrame { offset=(18,36) size=(320,120) color=#00000000 block_input=false
-        image QuestBg { offset=(0,0) size=(320,120) image="image.@ghohoh404040.quest_panel_v2" }
+        image QuestBg { offset=(0,0) size=(320,120) image="image.@ghohoh404040.quest_panel_v5" }
         image QuestTitleIcon { offset=(28,23) size=(17,17) image="baked.QuestDiamondOutline.color" }
-        textLabel QuestTitle { offset=(52,12) size=(262,36) text="A Letter for the Mill" font="font.google.EB_Garamond" font_size=25 text_color=#E8C88A shadow_color=#0000004D }
-        textLabel QuestGoalIcon { offset=(27,54) size=(24,28) text="◆" font_size=20 text_color=#E3A84E shadow_color=#0000004D }
-        textLabel QuestGoal { offset=(58,54) size=(252,28) text="Deliver the letter to the miller" font="font.google.EB_Garamond" font_size=19 text_color=#F3ECDC shadow_color=#0000004D }
-        textLabel QuestHint { offset=(58,78) size=(252,26) text="He's usually near the river." font="font.google.EB_Garamond" font_size=17 text_color=#E7DDC8 shadow_color=#0000004D }
+        textLabel QuestTitle { offset=(52,12) size=(262,36) text="A Letter for the Mill" font="font.google.EB_Garamond" font_size=25 text_color=#E8C88A shadow_color=#00000030 }
+        textLabel QuestGoalIcon { offset=(27,54) size=(24,28) text="◆" font_size=20 text_color=#E3A84E shadow_color=#00000030 }
+        textLabel QuestGoal { offset=(58,54) size=(252,28) text="Deliver the letter to the miller" font="font.google.EB_Garamond" font_size=19 text_color=#F3ECDC shadow_color=#00000030 }
+        textLabel QuestHint { offset=(58,78) size=(252,26) text="He's usually near the river." font="font.google.EB_Garamond" font_size=17 text_color=#E7DDC8 shadow_color=#00000030 }
     }
 }
 
