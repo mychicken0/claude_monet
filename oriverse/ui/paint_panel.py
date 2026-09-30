@@ -1,101 +1,80 @@
-# Paints the HUD panel background (hud_panel.png, RGBA): overlapping horizontal oil-paint
-# strokes in slate blue / lilac / teal. Each stroke is a bundle of bristle streaks; smooth
-# noise breaks the streaks into dry-brush gaps toward the tail and along the outer edge.
-# Rendered at 2x and downsampled so every edge is soft.
+# Paints the quest panel background (quest_panel.png, RGBA 1024x384 = the 320x120 HUD panel at 3.2x):
+# a smooth dark-slate wash with gentle mottling, feathered dry-brush edges (long horizontal
+# bristle streaks fading out on the right), and a thin gold frame line on the left, top and bottom
+# with small corner dots - the look of the reference quest panel.
 import numpy as np
 from PIL import Image
-S = 2
-W, H = 1024 * S, 384 * S
-rng = np.random.default_rng(11)
+W, H = 1024, 384
 yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
-rgb = np.zeros((H, W, 3), np.float32)
-a = np.zeros((H, W), np.float32)
-
-def over(col, alpha):
-    global rgb, a
-    alpha = np.clip(alpha, 0, 1)
-    out_a = alpha + a * (1 - alpha)
-    rgb = (col * alpha[..., None] + rgb * (a * (1 - alpha))[..., None]) / np.maximum(out_a, 1e-4)[..., None]
-    a = out_a
 
 def h(i):
     return (np.sin(i * 12.9898 + 78.233) * 43758.5453) % 1.0
 
-def noise1(t, k):
-    # smooth value noise along t, independent per bristle k
-    i = np.floor(t); f = t - i; f = f * f * (3 - 2 * f)
-    return h(i + k * 57.3) * (1 - f) + h(i + 1 + k * 57.3) * f
+def vnoise(x, y, seed):
+    xi, yi = np.floor(x), np.floor(y); xf, yf = x - xi, y - yi
+    xf = xf * xf * (3 - 2 * xf); yf = yf * yf * (3 - 2 * yf)
+    def g(a, b): return h(a * 157.0 + b * 311.7 + seed * 71.3)
+    return (g(xi, yi) * (1 - xf) + g(xi + 1, yi) * xf) * (1 - yf) + (g(xi, yi + 1) * (1 - xf) + g(xi + 1, yi + 1) * xf) * yf
+
+def fbm(x, y, seed, oct=4):
+    s, a, f = 0.0, 0.5, 1.0
+    for o in range(oct):
+        s = s + a * vnoise(x * f, y * f, seed + o); a *= 0.5; f *= 2.0
+    return s
 
 def sstep(e0, e1, x):
     t = np.clip((x - e0) / (e1 - e0), 0, 1)
     return t * t * (3 - 2 * t)
 
-def stroke(x0, x1, yc, hh, col, alpha, dry=0.35, bend=0.0, seed=0):
-    x0 *= S; x1 *= S; yc *= S; hh *= S; bend *= S
-    lo, hi = int(max(yc - hh - abs(bend) - 4, 0)), int(min(yc + hh + abs(bend) + 4, H))
-    X = xx[lo:hi]; Y = yy[lo:hi]
-    u = (X - x0) / (x1 - x0)
-    v = (Y - yc - bend * np.sin(np.clip(u, 0, 1) * np.pi)) / hh
-    # rounded loaded head, long tapering tail; a wobbly outline
-    head = np.sqrt(np.clip(u / 0.06, 0, 1))
-    tail = 1 - 0.6 * sstep(0.55, 1.0, u)
-    wob = 0.9 + 0.1 * noise1(u * 14, seed + 3)
-    prof = head * tail * wob
-    nb = hh / (1.6 * S)
-    k = np.floor((v + 1) * 0.5 * nb)
-    brv = h(k + seed * 13.0)
-    # dry brush: streaks break up more toward the tail and on the stroke's outer bristles
-    dryness = dry * sstep(0.35, 1.0, u) + 0.25 * sstep(0.6, 1.0, np.abs(v))
-    gaps = sstep(dryness - 0.08, dryness + 0.08, noise1(u * (x1 - x0) / (26 * S), k + seed))
-    body = sstep(0.0, 0.08, prof - np.abs(v)) * sstep(0.0, 0.01, u) * sstep(0.0, 0.01, 1 - u)
-    m = body * gaps
-    shade = (0.86 + 0.26 * brv)[..., None]
-    sub = rgb[lo:hi].copy(); suba = a[lo:hi].copy()
-    al = np.clip(m * alpha, 0, 1)
-    out_a = al + suba * (1 - al)
-    c = np.asarray(col, np.float32)[None, None, :] * shade
-    rgb[lo:hi] = (c * al[..., None] + sub * (suba * (1 - al))[..., None]) / np.maximum(out_a, 1e-4)[..., None]
-    a[lo:hi] = out_a
+# bristle rows: a per-row value that changes every ~3 px vertically, smooth along x
+rows = vnoise(xx / 220.0, yy / 7.0, 5) * 0.7 + vnoise(xx / 80.0, yy / 3.0, 6) * 0.3
+# wash extent with brushy edges
+right = 1 - sstep(760, 960, xx + (rows - 0.5) * 200 + (fbm(xx / 30.0, yy / 25.0, 9) - 0.5) * 110)
+left = sstep(22, 44, xx + (rows - 0.5) * 16)
+top = sstep(30, 46, yy + (fbm(xx / 45.0, 0 * yy, 11) - 0.5) * 22)
+bot = 1 - sstep(338, 358, yy + (fbm(xx / 40.0, 0 * yy + 3, 12) - 0.5) * 26)
+alpha = 0.9 * right * left * top * bot
+# dry-brush breaks inside the fading edges only
+dry = sstep(0.25, 0.75, alpha / 0.9)
+alpha *= np.clip(0.55 + 0.45 * dry + (rows - 0.5) * (1 - dry) * 1.2, 0, 1)
+# slate colour: darker toward the left/center, a little cooler and lighter toward the fading edge
+mott = fbm(xx / 140.0, yy / 90.0, 21) - 0.5
+base = np.array([0.23, 0.26, 0.34], np.float32)
+light = np.array([0.30, 0.33, 0.42], np.float32)
+t = np.clip(xx / 1000.0 * 0.6 + mott * 0.5 + (rows - 0.5) * 0.25, 0, 1)[..., None]
+rgb = base * (1 - t) + light * t
+rgb *= (1 + (rows - 0.5) * 0.06)[..., None]
 
-# underpainting: a dark wash filling the middle, so the text always sits on solid paint;
-# its edge is broken by noise, the strokes above carry the ragged outline
-dx = np.maximum(np.maximum(90 * S - xx, xx - (W - 90 * S)), 0) / S
-dy = np.maximum(np.maximum(52 * S - yy, yy - (H - 52 * S)), 0) / S
-edge_n = noise1(yy / (9 * S), 7.0) * 30 + noise1(xx / (11 * S), 9.0) * 14
-wash = 1 - sstep(0, 40, np.sqrt(dx * dx + dy * dy) + edge_n - 12)
-over(np.array([0.15, 0.19, 0.28], np.float32)[None, None, :], wash * 0.82)
-base = [(0.16, 0.20, 0.30), (0.19, 0.24, 0.36), (0.22, 0.28, 0.41), (0.26, 0.26, 0.39),
-        (0.17, 0.27, 0.32), (0.28, 0.32, 0.46)]
-# underlayer: long strokes, ragged ends, alternating direction
-y = 34
-while y < 384 - 30:
-    hh = rng.uniform(14, 24)
-    left, right = rng.uniform(10, 70), 1024 - rng.uniform(10, 80)
-    col = base[rng.integers(len(base))]
-    if rng.random() < 0.5:
-        stroke(left, right, y, hh, col, 0.9, dry=0.75, bend=rng.uniform(-5, 5), seed=y)
-    else:
-        stroke(right, left, y, hh, col, 0.9, dry=0.75, bend=rng.uniform(-5, 5), seed=y)
-    y += hh * rng.uniform(0.95, 1.3)
-# broken colour on top: shorter strokes
-for i in range(60):
-    L = rng.uniform(140, 420)
-    xs = rng.uniform(40, 1024 - 40 - L)
-    yc = rng.uniform(50, 384 - 50)
-    hh = rng.uniform(6, 13)
-    col = tuple(c * rng.uniform(0.95, 1.2) for c in base[rng.integers(len(base))])
-    if rng.random() < 0.5:
-        stroke(xs, xs + L, yc, hh, col, 0.5, dry=0.9, bend=rng.uniform(-3, 3), seed=1000 + i)
-    else:
-        stroke(xs + L, xs, yc, hh, col, 0.5, dry=0.9, bend=rng.uniform(-3, 3), seed=1000 + i)
-# faint cream / gold dry-brush rim, top and bottom
-stroke(rng.uniform(40, 100), 1024 - rng.uniform(60, 160), 26, 4.5, (0.93, 0.85, 0.64), 0.5, dry=0.9, seed=5001)
-stroke(1024 - rng.uniform(40, 100), rng.uniform(80, 200), 384 - 28, 4.0, (0.93, 0.85, 0.64), 0.4, dry=0.95, seed=5002)
-a *= 0.88
-img = np.dstack([np.clip(rgb, 0, 1) * a[..., None], a])  # premultiply for clean downsampling
-im = Image.fromarray((img * 255).astype(np.uint8), "RGBA").resize((1024, 384), Image.LANCZOS)
-arr = np.asarray(im).astype(np.float32) / 255
-al = arr[..., 3:4]
-arr[..., :3] = np.where(al > 1e-3, arr[..., :3] / np.maximum(al, 1e-3), 0)
-Image.fromarray((np.clip(arr, 0, 1) * 255).astype(np.uint8), "RGBA").save("hud_panel.png")
+img = np.dstack([rgb, alpha])
+
+def line(img, x0, y0, x1, y1, w, col, a, fade_from=None):
+    # thin, slightly uneven gold line; optional fade toward the end
+    n = int(max(abs(x1 - x0), abs(y1 - y0))) + 1
+    for i in range(n):
+        f = i / max(n - 1, 1)
+        x = x0 + (x1 - x0) * f; y = y0 + (y1 - y0) * f
+        k = a * (0.8 + 0.2 * h(i * 0.37 + x0))
+        if fade_from is not None and f > fade_from:
+            k *= 1 - (f - fade_from) / (1 - fade_from)
+        xi, yi = int(round(x)), int(round(y))
+        r = w / 2
+        for dy in range(-2, 3):
+            for dx in range(-2, 3):
+                px, py = xi + dx, yi + dy
+                if 0 <= px < W and 0 <= py < H:
+                    d = np.hypot(dx, dy)
+                    cov = np.clip(r + 0.5 - d, 0, 1) * k
+                    if cov <= 0: continue
+                    ca = img[py, px, 3]
+                    oa = cov + ca * (1 - cov)
+                    img[py, px, :3] = (np.array(col) * cov + img[py, px, :3] * ca * (1 - cov)) / max(oa, 1e-4)
+                    img[py, px, 3] = oa
+
+gold = (0.82, 0.67, 0.40)
+line(img, 16, 22, 16, 362, 3.0, gold, 0.95)                    # left
+line(img, 16, 22, 820, 22, 3.0, gold, 0.95, fade_from=0.72)    # top, fading out to the right
+line(img, 16, 362, 330, 362, 3.0, gold, 0.9, fade_from=0.6)    # bottom, shorter
+for (cx, cy) in [(16, 22), (16, 362)]:                          # corner dots
+    line(img, cx - 4, cy, cx + 4, cy, 5.0, gold, 1.0)
+Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8), "RGBA").save("quest_panel.png")
 print("ok")
