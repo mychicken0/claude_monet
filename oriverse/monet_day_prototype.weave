@@ -98,8 +98,7 @@ event OnSpawned {
     var t = SpawnTerrainRecipe(100, Origin())
     t.SetTerrainMaterial(Material.MonetGrassTex)
     t.SetTerrainLayers(Material.MonetPathTex, None, None)
-    t.SetTerrainGrassVisible(true)
-    t.SetTerrainGrassStyle(1)
+    t.SetTerrainGrassVisible(false)
 }
 #end
 display World : MonetWorld { visible = false }
@@ -289,9 +288,6 @@ out.base_color = vec4<f32>(paint, 1.0);
 out.orm = vec4<f32>(1.0, 0.96, 0.0, 0.0);
 #end
 
-
-// ---- Meadow grass: Codex-painted strips (3 atlas rows) crossed as a star; the terrain grass
-// system spawns it everywhere, sways it in the wind and bends it around walking players.
 
 // ============================================================
 // PAINTED SKY + DISTANT SET (Codex sprites, transparent, placed piece by piece
@@ -1040,7 +1036,21 @@ object CypressT2 { model = "tree.MonetCypress" position = (5050, -1550, 0) }
 object CypressT3 { model = "tree.MonetCypress" position = (6900, -600, 0) }
 object RoundTreeT1 { model = "tree.MonetRoundTree" position = (3000, -1500, 0) }
 
-// ---- meadow grass = engine GPU blades (terrain only, parts around the player) ----
+// ---- painted grass: our own tufts, terrain only, off the roads and out of the river ----
+object GrassAFieldN { model = "scatter.GrassTuftsA" position = (-1375, 1550, -300) size = (6450, 2600, 1200) }
+object GrassBFieldN { model = "scatter.GrassTuftsB" position = (-1375, 1550, -300) size = (6450, 2600, 1200) }
+object GrassAFieldS { model = "scatter.GrassTuftsA" position = (-1375, -1550, -300) size = (6450, 2600, 1200) }
+object GrassBFieldS { model = "scatter.GrassTuftsB" position = (-1375, -1550, -300) size = (6450, 2600, 1200) }
+object GrassAWestEnd { model = "scatter.GrassTuftsA" position = (-3080, 0, -300) size = (3040, 500, 1200) }
+object GrassBWestEnd { model = "scatter.GrassTuftsB" position = (-3080, 0, -300) size = (3040, 500, 1200) }
+object GrassABankN { model = "scatter.GrassTuftsA" position = (2350, 1550, -400) size = (1000, 2600, 1300) }
+object GrassBBankN { model = "scatter.GrassTuftsB" position = (2350, 1550, -400) size = (1000, 2600, 1300) }
+object GrassABankS { model = "scatter.GrassTuftsA" position = (2350, -1550, -400) size = (1000, 2600, 1300) }
+object GrassBBankS { model = "scatter.GrassTuftsB" position = (2350, -1550, -400) size = (1000, 2600, 1300) }
+object GrassATownN { model = "scatter.GrassTuftsA" position = (5130, 1225, -300) size = (4540, 1950, 1200) }
+object GrassBTownN { model = "scatter.GrassTuftsB" position = (5130, 1225, -300) size = (4540, 1950, 1200) }
+object GrassATownS { model = "scatter.GrassTuftsA" position = (5130, -1225, -300) size = (4540, 1950, 1200) }
+object GrassBTownS { model = "scatter.GrassTuftsB" position = (5130, -1225, -300) size = (4540, 1950, 1200) }
 
 // ---- painted sky (clouds ring the valley) ----
 display Cloud1 { model = "mesh.CloudCard" material = "SkyCloudA" position = (63000, 0, 18000) rotation = (0, 0, 90) }
@@ -1073,9 +1083,13 @@ display BdRidgeW { model = "mesh.RidgeCard" material = "BdRidge" position = (-10
 // instance (random scale/yaw/tint), so nothing reads as a repeated clump.
 // All plants share the MeadowSway vertex hook (wind + parting around the player).
 // ============================================================
-// Blade colour is computed on the GPU from height + sun: root -> tip gradient,
-// sunlit side warm gold, shaded side violet-blue. params: 0-2 root, 4-6 tip, 8-10 cool.
-
+// Our own painted grass (the engine's terrain grass takes no custom shader, so it is off).
+// Each tuft is a #mesh of ribbon blades scattered on the terrain only (never on walls).
+// PaintedGrass moves them like hand-drawn animation: every tuft holds a pose and jumps to
+// the next one on its own beat (few frames a second), wind gusts roll across the field,
+// blades part around the player, and colour is laid as flat broken-colour dabs.
+// params: 0-2 root colour, 3 poses per second, 4-6 tip colour, 7 sway metres,
+//         8-10 sunlit dab colour, 11 distance (m) where blades sink into the painted ground.
 #texture PlantCardTex
 mapping = uv;
 render_mode = cutout_twosided;
@@ -1085,13 +1099,60 @@ out.alpha = 1.0;
 out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
 #end
 
-material GrassBlade { base = "PlantCardTex" shader = "MeadowSway" param0 = 0.10224 param1 = 0.19462 param2 = 0.06480 param4 = 0.57758 param5 = 0.63076 param6 = 0.21586 param7 = 4 }
+material PaintGrass { base = "PlantCardTex" shader = "PaintedGrass" param0 = 0.13 param1 = 0.22 param2 = 0.08 param3 = 4 param4 = 0.56 param5 = 0.64 param6 = 0.24 param7 = 0.12 param8 = 0.86 param9 = 0.74 param10 = 0.34 param11 = 40 }
 
-material GrassBladeTip { base = "PlantCardTex" shader = "MeadowSway" param0 = 0.57758 param1 = 0.63076 param2 = 0.21586 param7 = 4 }
+material PaintGrassDry { base = "PlantCardTex" shader = "PaintedGrass" param0 = 0.22 param1 = 0.24 param2 = 0.10 param3 = 4 param4 = 0.78 param5 = 0.64 param6 = 0.26 param7 = 0.12 param8 = 0.92 param9 = 0.80 param10 = 0.46 param11 = 40 }
 
-material GrassBladeDry { base = "PlantCardTex" shader = "MeadowSway" param0 = 0.19462 param1 = 0.21586 param2 = 0.08022 param4 = 0.80695 param5 = 0.68669 param6 = 0.27889 param7 = 4 }
-
-material GrassBladeDryTip { base = "PlantCardTex" shader = "MeadowSway" param0 = 0.80695 param1 = 0.68669 param2 = 0.27889 param7 = 4 }
+#shader PaintedGrass
+@vertex {
+    let hgt = clamp(ctx.local_pos.y / 0.6, 0.0, 1.0);
+    let bend = hgt * hgt;
+    let w = ctx.world_pos;
+    let fps = max(mat.params4[0].w, 1.0);
+    let amp = mat.params4[1].w;
+    // each tuft steps on its own beat (scatter tint = per-tuft id); gust fronts roll across
+    let mc = ctx.mesh_color.rgb;
+    let id = fract(sin(dot(mc, vec3<f32>(12.9898, 78.233, 37.719))) * 43758.5453);
+    let wave = ori_fbm2(w.x * 0.12, w.z * 0.12, 2, 7u) * 3.0 - w.x * 0.18;
+    let k = floor(u_camera.time_seconds * fps + id + wave);
+    let tk = k / fps;
+    let g1 = ori_fbm2(w.x * 0.10 + tk * 0.45, w.z * 0.10 - tk * 0.25, 2, 5u) - 0.5;
+    let g2 = ori_fbm2(w.z * 0.13 - tk * 0.30, w.x * 0.13 + tk * 0.20, 2, 9u) - 0.5;
+    let jig = ori_hash2(k, id * 331.0, 13u) - 0.5;
+    let dx = (0.35 + g1 * 1.6 + jig * 0.25) * amp;
+    let dz = (g2 * 1.2 + jig * 0.2) * amp;
+    ctx.world_pos.x += dx * bend;
+    ctx.world_pos.z += dz * bend;
+    ctx.world_pos.y -= (abs(dx) + abs(dz)) * 0.35 * bend;
+    // part around the player (first-person camera sits above the feet)
+    let cam = u_camera.camera_position;
+    let d = vec2<f32>(w.x - cam.x, w.z - cam.z);
+    let dist = length(d);
+    let push = (1.0 - smoothstep(0.3, 1.2, dist)) * hgt;
+    let dir = d / max(dist, 0.001);
+    ctx.world_pos.x += dir.x * push * 0.45;
+    ctx.world_pos.z += dir.y * push * 0.45;
+    ctx.world_pos.y -= push * 0.3;
+    // far away the painted ground texture takes over: blades sink out of sight
+    let keep = 1.0 - smoothstep(mat.params4[2].w * 0.7, mat.params4[2].w, dist);
+    ctx.world_pos.y -= ctx.local_pos.y * 1.4 * (1.0 - keep);
+}
+// flat broken-colour dabs up each blade; a soft, mostly-up normal keeps the shading calm
+let p = ctx.local_pos;
+let hgt = clamp(p.y / 0.6, 0.0, 1.0);
+let lane = floor((p.x * 0.8 + p.z * 1.3) * 22.0);
+let seg = floor(p.y * 14.0 + ori_hash2(lane, 1.0, 5u) * 3.0);
+let dab = ori_hash2(lane, seg, 41u);
+let dab2 = ori_hash2(seg, lane, 43u);
+var col = mix(mat.params4[0].xyz, mat.params4[1].xyz, smoothstep(0.05, 0.95, hgt));
+col = col * (0.82 + dab * 0.36);
+col = mix(col, mat.params4[2].xyz, smoothstep(0.5, 1.0, hgt) * step(0.6, dab2) * 0.55);
+col = mix(col, col * vec3<f32>(0.80, 0.92, 1.18), (1.0 - hgt) * 0.45 * (1.0 - dab2));
+col = col * ctx.mesh_color.rgb;
+out.base_color = vec4<f32>(col, 1.0);
+out.world_normal = normalize(vec3<f32>((dab - 0.5) * 0.4, 1.0, (dab2 - 0.5) * 0.4));
+out.orm = vec4<f32>(1.0, 0.95, 0.0, 0.0);
+#end
 
 #texture FlowerStemTex color=#5E7A44 roughness=0.85
 
@@ -1113,46 +1174,100 @@ material PetalLav { base = "PetalLavTex" shader = "MeadowSway" param0 = 0.39676 
 
 material FlowerEye { base = "FlowerEyeTex" shader = "MeadowSway" param0 = 0.87137 param1 = 0.47932 param2 = 0.04231 param7 = 4 }
 
-// One curved blade (ribbon, tapering to a point).
-#meshpart MonetBlade
+// One painted blade: a single tapering ribbon (colour and motion come from PaintedGrass).
+#meshpart PaintBlade
 param h = 70;
-param lean = 16;
-param w = 5.5;
-param mat = "GrassBlade";
-param tip = "GrassBladeTip";
-let low = ribbon_path(points: [(0, 0, -4, w), (lean * 0.15, 0, h * 0.3, w * 0.92), (lean * 0.36, 0, h * 0.56, w * 0.78)], normal: (0, 1, 0), two_sided: "no", material: mat);
-let high = ribbon_path(points: [(lean * 0.36, 0, h * 0.56, w * 0.78), (lean * 0.65, 0, h * 0.8, w * 0.5), (lean, 0, h, 0.3)], normal: (0, 1, 0), two_sided: "no", material: tip);
-out.geo = merge(low, high);
+param lean = 14;
+param w = 5;
+param mat = "PaintGrass";
+out.geo = ribbon_path(points: [(0, 0, -3, w), (lean * 0.12, 0, h * 0.38, w * 0.9), (lean * 0.45, 0, h * 0.74, w * 0.6), (lean, 0, h, 0.4)], normal: (0, 1, 0), two_sided: "yes", material: mat);
 #end
 
-#mesh BladeA
+// Lush tuft of thin blades; far variants keep fewer, slightly wider blades.
+#mesh GrassTuftA
 out.geo = merge(
-    part(MonetBlade, h: 70, lean: 16),
-    translate(rotate_z(part(MonetBlade, h: 55, lean: 20), 70), (9, 4, 0)),
-    translate(rotate_z(part(MonetBlade, h: 82, lean: 11), 150), (-6, 8, 0)),
-    translate(rotate_z(part(MonetBlade, h: 46, lean: 24), 215), (-10, -5, 0)),
-    translate(rotate_z(part(MonetBlade, h: 64, lean: 14), 290), (4, -9, 0)),
-    translate(rotate_z(part(MonetBlade, h: 38, lean: 18), 110), (14, -3, 0)),
-    translate(rotate_z(part(MonetBlade, h: 58, lean: 9), 330), (-3, 13, 0))
+    translate(rotate_z(part(PaintBlade, h: 44, lean: 12, w: 3.1, mat: "PaintGrassDry"), 162), (14.6, -7.5, 0)),
+    translate(rotate_z(part(PaintBlade, h: 31, lean: 8, w: 2.5), 184), (4.7, -16.8, 0)),
+    translate(rotate_z(part(PaintBlade, h: 62, lean: 14, w: 3.1, mat: "PaintGrassDry"), 249), (4.5, -0.5, 0)),
+    translate(rotate_z(part(PaintBlade, h: 34, lean: 7, w: 2.4), 5), (14.9, 5.8, 0)),
+    translate(rotate_z(part(PaintBlade, h: 51, lean: 11, w: 3.2), 158), (-20.0, -2.4, 0)),
+    translate(rotate_z(part(PaintBlade, h: 58, lean: 15, w: 2.8), 100), (22.0, -0.6, 0)),
+    translate(rotate_z(part(PaintBlade, h: 42, lean: 17, w: 2.9), 104), (0.6, -5.8, 0)),
+    translate(rotate_z(part(PaintBlade, h: 60, lean: 11, w: 3.6), 305), (0.1, 0.5, 0)),
+    translate(rotate_z(part(PaintBlade, h: 37, lean: 5, w: 2.8), 26), (3.1, -17.2, 0)),
+    translate(rotate_z(part(PaintBlade, h: 31, lean: 4, w: 3.4, mat: "PaintGrassDry"), 272), (0.2, 7.6, 0)),
+    translate(rotate_z(part(PaintBlade, h: 54, lean: 6, w: 3.2, mat: "PaintGrassDry"), 201), (5.4, 13.7, 0)),
+    translate(rotate_z(part(PaintBlade, h: 62, lean: 16, w: 2.8), 151), (-1.3, 10.1, 0)),
+    translate(rotate_z(part(PaintBlade, h: 51, lean: 5, w: 3.6), 75), (8.4, -10.9, 0)),
+    translate(rotate_z(part(PaintBlade, h: 38, lean: 5, w: 2.5), 92), (-9.2, 17.0, 0)),
+    translate(rotate_z(part(PaintBlade, h: 44, lean: 19, w: 3.0), 87), (-11.8, 12.3, 0)),
+    translate(rotate_z(part(PaintBlade, h: 60, lean: 17, w: 2.7, mat: "PaintGrassDry"), 311), (5.3, 7.8, 0)),
+    translate(rotate_z(part(PaintBlade, h: 62, lean: 18, w: 3.1), 266), (7.0, 20.1, 0)),
+    translate(rotate_z(part(PaintBlade, h: 36, lean: 15, w: 2.7), 37), (4.2, -1.0, 0)),
+    translate(rotate_z(part(PaintBlade, h: 53, lean: 5, w: 2.7), 214), (5.4, 10.6, 0)),
+    translate(rotate_z(part(PaintBlade, h: 61, lean: 7, w: 2.4), 306), (-3.3, 16.9, 0)),
+    translate(rotate_z(part(PaintBlade, h: 41, lean: 13, w: 2.6), 160), (2.4, 4.8, 0)),
+    translate(rotate_z(part(PaintBlade, h: 52, lean: 13, w: 2.6, mat: "PaintGrassDry"), 320), (-12.0, -18.2, 0))
 );
 #end
 
-#mesh BladeB
+#mesh GrassTuftA lod: 1
 out.geo = merge(
-    part(MonetBlade, h: 48, lean: 22, w: 5.0, mat: "GrassBladeDry", tip: "GrassBladeDryTip"),
-    translate(rotate_z(part(MonetBlade, h: 40, lean: 18, w: 4.5, mat: "GrassBladeDry", tip: "GrassBladeDryTip"), 95), (8, 6, 0)),
-    translate(rotate_z(part(MonetBlade, h: 56, lean: 12, w: 5.0, mat: "GrassBladeDry", tip: "GrassBladeDryTip"), 200), (-7, 5, 0)),
-    translate(rotate_z(part(MonetBlade, h: 34, lean: 20, w: 4.0, mat: "GrassBladeDry", tip: "GrassBladeDryTip"), 280), (2, -9, 0)),
-    translate(rotate_z(part(MonetBlade, h: 44, lean: 15, w: 4.5), 20), (-11, -6, 0))
+    translate(rotate_z(part(PaintBlade, h: 44, lean: 12, w: 4.3, mat: "PaintGrassDry"), 162), (14.6, -7.5, 0)),
+    translate(rotate_z(part(PaintBlade, h: 33, lean: 8, w: 3.5), 184), (4.7, -16.8, 0)),
+    translate(rotate_z(part(PaintBlade, h: 60, lean: 14, w: 4.4, mat: "PaintGrassDry"), 249), (4.5, -0.5, 0)),
+    translate(rotate_z(part(PaintBlade, h: 36, lean: 7, w: 3.4), 5), (14.9, 5.8, 0)),
+    translate(rotate_z(part(PaintBlade, h: 50, lean: 11, w: 4.5), 158), (-20.0, -2.4, 0)),
+    translate(rotate_z(part(PaintBlade, h: 56, lean: 15, w: 3.9), 100), (22.0, -0.6, 0)),
+    translate(rotate_z(part(PaintBlade, h: 42, lean: 17, w: 4.0), 104), (0.6, -5.8, 0)),
+    translate(rotate_z(part(PaintBlade, h: 59, lean: 11, w: 5.0), 305), (0.1, 0.5, 0)),
+    translate(rotate_z(part(PaintBlade, h: 38, lean: 5, w: 3.9), 26), (3.1, -17.2, 0)),
+    translate(rotate_z(part(PaintBlade, h: 33, lean: 4, w: 4.7, mat: "PaintGrassDry"), 272), (0.2, 7.6, 0)),
+    translate(rotate_z(part(PaintBlade, h: 53, lean: 6, w: 4.4, mat: "PaintGrassDry"), 201), (5.4, 13.7, 0)),
+    translate(rotate_z(part(PaintBlade, h: 61, lean: 16, w: 3.9), 151), (-1.3, 10.1, 0))
 );
 #end
 
-#mesh BladeC
+#mesh GrassTuftA lod: 2
 out.geo = merge(
-    part(MonetBlade, h: 88, lean: 9, w: 4.5),
-    translate(rotate_z(part(MonetBlade, h: 96, lean: 14, w: 4.0), 120), (6, 7, 0)),
-    translate(rotate_z(part(MonetBlade, h: 74, lean: 18, w: 4.5), 240), (-7, 4, 0)),
-    translate(rotate_z(part(MonetBlade, h: 66, lean: 12, w: 4.0, mat: "GrassBladeDry", tip: "GrassBladeDryTip"), 300), (3, -8, 0))
+    translate(rotate_z(part(PaintBlade, h: 45, lean: 12, w: 6.2, mat: "PaintGrassDry"), 162), (13.3, -6.9, 0)),
+    translate(rotate_z(part(PaintBlade, h: 36, lean: 8, w: 5.2), 184), (4.2, -15.3, 0)),
+    translate(rotate_z(part(PaintBlade, h: 57, lean: 14, w: 6.2, mat: "PaintGrassDry"), 249), (4.1, -0.5, 0)),
+    translate(rotate_z(part(PaintBlade, h: 38, lean: 7, w: 5.1), 5), (13.5, 5.3, 0)),
+    translate(rotate_z(part(PaintBlade, h: 49, lean: 11, w: 6.3), 158), (-18.2, -2.2, 0)),
+    translate(rotate_z(part(PaintBlade, h: 54, lean: 15, w: 5.6), 100), (20.0, -0.5, 0))
+);
+#end
+
+// Shorter, drier tuft for broken colour between the lush ones.
+#mesh GrassTuftB
+out.geo = merge(
+    translate(rotate_z(part(PaintBlade, h: 20, lean: 13, w: 2.8, mat: "PaintGrassDry"), 332), (13.7, -11.0, 0)),
+    translate(rotate_z(part(PaintBlade, h: 23, lean: 11, w: 2.4, mat: "PaintGrassDry"), 46), (-7.4, 2.7, 0)),
+    translate(rotate_z(part(PaintBlade, h: 37, lean: 9, w: 2.5), 255), (-11.6, -0.9, 0)),
+    translate(rotate_z(part(PaintBlade, h: 43, lean: 9, w: 3.2, mat: "PaintGrassDry"), 212), (-10.6, -10.1, 0)),
+    translate(rotate_z(part(PaintBlade, h: 20, lean: 11, w: 3.1, mat: "PaintGrassDry"), 205), (-5.8, 13.4, 0)),
+    translate(rotate_z(part(PaintBlade, h: 22, lean: 9, w: 3.2, mat: "PaintGrassDry"), 161), (6.0, 13.1, 0)),
+    translate(rotate_z(part(PaintBlade, h: 25, lean: 13, w: 3.2, mat: "PaintGrassDry"), 41), (5.5, 1.4, 0)),
+    translate(rotate_z(part(PaintBlade, h: 38, lean: 12, w: 2.7, mat: "PaintGrassDry"), 133), (-3.3, 9.1, 0)),
+    translate(rotate_z(part(PaintBlade, h: 24, lean: 12, w: 3.3, mat: "PaintGrassDry"), 282), (7.2, -13.3, 0)),
+    translate(rotate_z(part(PaintBlade, h: 19, lean: 10, w: 2.4), 340), (7.3, -1.2, 0)),
+    translate(rotate_z(part(PaintBlade, h: 42, lean: 12, w: 3.4), 247), (6.0, -16.7, 0)),
+    translate(rotate_z(part(PaintBlade, h: 23, lean: 5, w: 2.9, mat: "PaintGrassDry"), 124), (-12.7, 12.4, 0)),
+    translate(rotate_z(part(PaintBlade, h: 20, lean: 12, w: 2.6, mat: "PaintGrassDry"), 336), (3.7, 17.1, 0)),
+    translate(rotate_z(part(PaintBlade, h: 41, lean: 11, w: 2.7), 292), (-8.0, 4.3, 0))
+);
+#end
+
+#mesh GrassTuftB lod: 1
+out.geo = merge(
+    translate(rotate_z(part(PaintBlade, h: 21, lean: 13, w: 4.2, mat: "PaintGrassDry"), 332), (13.7, -11.0, 0)),
+    translate(rotate_z(part(PaintBlade, h: 24, lean: 11, w: 3.6, mat: "PaintGrassDry"), 46), (-7.4, 2.7, 0)),
+    translate(rotate_z(part(PaintBlade, h: 36, lean: 9, w: 3.7), 255), (-11.6, -0.9, 0)),
+    translate(rotate_z(part(PaintBlade, h: 41, lean: 9, w: 4.7, mat: "PaintGrassDry"), 212), (-10.6, -10.1, 0)),
+    translate(rotate_z(part(PaintBlade, h: 21, lean: 11, w: 4.6, mat: "PaintGrassDry"), 205), (-5.8, 13.4, 0)),
+    translate(rotate_z(part(PaintBlade, h: 23, lean: 9, w: 4.7, mat: "PaintGrassDry"), 161), (6.0, 13.1, 0)),
+    translate(rotate_z(part(PaintBlade, h: 26, lean: 13, w: 4.7, mat: "PaintGrassDry"), 41), (5.5, 1.4, 0))
 );
 #end
 
@@ -1195,36 +1310,31 @@ out.geo = merge(stem, buds);
 out.geo = part(MonetLavender);
 #end
 
-#scatter MeadowBladesA
-  model: "mesh.BladeA"
+#scatter GrassTuftsA
+  model: "mesh.GrassTuftA"
   seed: 31
-  spacing: 20
+  spacing: 36
   density_pct: 100
-  scale_min_pct: 70
-  scale_max_pct: 135
-  val_jitter_pct: 18
-  terrain_normal_align_pct: 20
-#end
-
-#scatter MeadowBladesB
-  model: "mesh.BladeB"
-  seed: 32
-  spacing: 24
-  density_pct: 100
-  scale_min_pct: 70
-  scale_max_pct: 130
-  val_jitter_pct: 18
-  terrain_normal_align_pct: 20
-#end
-
-#scatter MeadowBladesC
-  model: "mesh.BladeC"
-  seed: 33
-  spacing: 30
-  density_pct: 80
   scale_min_pct: 75
+  scale_max_pct: 130
+  hue_jitter_deg: 10
+  val_jitter_pct: 16
+  height_min_cm: -30
+  slope_max_pct: 60
+  terrain_normal_align_pct: 20
+#end
+
+#scatter GrassTuftsB
+  model: "mesh.GrassTuftB"
+  seed: 32
+  spacing: 70
+  density_pct: 50
+  scale_min_pct: 80
   scale_max_pct: 125
-  val_jitter_pct: 15
+  hue_jitter_deg: 10
+  val_jitter_pct: 16
+  height_min_cm: -30
+  slope_max_pct: 60
   terrain_normal_align_pct: 20
 #end
 
