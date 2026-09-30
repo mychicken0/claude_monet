@@ -101,20 +101,6 @@ event OnSpawned {
     t.SetTerrainGrassVisible(true)
     t.SetTerrainGrassStyle(1)
 }
-// Hand-painted animation for grass and river: the engine's smooth wind and wave
-// motion is frozen (speed 0) and a new pose is 'painted' 4 times a second by
-// re-rolling wind strength / wave size and the river's wave direction.
-event OnWorldReady {
-    SetGrassWindSpeedPercent(0)
-    var Step = 0
-    forever {
-        Wait(0.25)
-        Step = Step + 1
-        SetGrassWindStrengthCm(3 + Hash2(Step, 1, 7) * 4)
-        SetGrassWavePeriodCm(550 + Hash2(Step, 2, 7) * 350)
-        SetWaterWaves(3, 300, 0.35, 190 + Hash2(Step, 3, 7) * 60, 0)
-    }
-}
 #end
 display World : MonetWorld { visible = false }
 
@@ -264,7 +250,7 @@ out.orm = orm(occlusion: 1.0, roughness: 0.85, metallic: 0.0);
     let bend = hgt * hgt;
     let w = ctx.world_pos;
     let fps = max(mat.params4[1].w, 1.0);
-    let t = floor(u_camera.time_seconds * fps) / fps;
+    let t = floor(u_camera.time_seconds * fps + ori_hash2(floor(w.x * 2.0), floor(w.z * 2.0), 3u)) / fps;
     let gust = ori_fbm2(w.x * 0.08 + t * 0.35, w.z * 0.08 - t * 0.2, 2, 5u) - 0.5;
     let sway = sin(t * 0.9 + w.x * 0.45 + w.z * 0.3) * 0.045 + gust * 0.09;
     ctx.world_pos.x += sway * bend;
@@ -927,8 +913,9 @@ let along = dot(pxy, dir);
 let across = dot(pxy, vec2<f32>(-dir.y, dir.x));
 let cx = floor(along / (dab * 2.2));
 let cy = floor(across / dab);
-let h1 = ori_hash2(cx + tick * 13.0, cy, 3u);
-let h2 = ori_hash2(cx, cy - tick * 7.0, 9u);
+let tk = floor(ctx.time_seconds * boil + ori_hash2(cx, cy, 29u)) * step(0.5, plant);
+let h1 = ori_hash2(cx + tk * 13.0, cy, 3u);
+let h2 = ori_hash2(cx, cy - tk * 7.0, 9u);
 let jit = (dir * (h1 - 0.5) * 2.0 + vec2<f32>(-dir.y, dir.x) * (h2 - 0.5)) * (wob + plantWob * plant);
 let uv0 = ctx.uv + jit / res;
 let px = vec2<f32>(stride) / res;
