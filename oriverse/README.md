@@ -7,6 +7,13 @@ The look: a Monet / impressionist plein-air landscape — a meadow corridor alon
 river with a stone bridge, and a small town on the far bank. The world is painted as brush
 strokes, and plants move in a few held frames a second, like hand-drawn animation.
 
+## Game direction
+An open-world traveling RPG/FPS in a medieval Monet world. Travel matters more than fighting.
+- **Player:** a traveler, courier and mapmaker exploring a world whose map is still incomplete.
+- **Core loop:** take a job → pack goods (weight) → plan a route → walk or ride → explore and map → meet road events → deliver → unlock new information and routes.
+- **Activities:** delivery jobs, finding new routes, talking to NPCs, events on the road, and slowly making roads safer and easier to travel.
+- **Horse vs. on foot:** the horse is for long distances and carrying goods; walking is for forests, mountains, ruins, secret paths and detailed exploration.
+
 ## How the painted look is built
 
 | Layer | Where | What it does |
