@@ -65,6 +65,15 @@ it sits on the ground only, never on walls or roads.
 - Motion is hand-drawn: few held frames a second, and every tuft, flower and stroke keeps its own beat. Nothing may change in sync across the whole field; global engine wind/wave re-rolls caused that flicker before.
 - The sky, the water and the light share one palette: clear cerulean sky, warm golden sun, blue-violet shade. The river mirrors the sky and the town.
 
+## UI design direction (approved: the quest panel)
+Every HUD panel follows the quest panel (`screenCanvas QuestPanel`, art `oriverse/ui/quest_panel_v5.png`):
+- **Backing:** a painted indigo watercolour wash, not a flat box. Dark slate-indigo core (about `#3C4455`), darkest across the upper middle, cooling to a lighter blue toward the edges. Soft mottling and a faint horizontal brush drag. Edges dissolve in soft dry-brush patches; the right side fades out gradually. No hard stripes, no solid rectangles.
+- **Frame:** thin gold lines (about `#DBB875`) drawn as if by hand: the line wavers a little, swells and thins, and the nib skips now and then. Left side full height, top line fading out to the right with a faint second stroke, short bottom line, small ink knots at the corners. Never ruler-straight, even-width lines.
+- **Type:** EB Garamond (`font.google.EB_Garamond`). Titles in warm gold (`#E8C88A`), body in cream (`#F3ECDC` / `#E7DDC8`), a very light text shadow (`#00000030`). Thin and quiet, not bold.
+- **Icons:** small gold diamonds: an outline diamond for headings, a filled `◆` (`#E3A84E`) for objectives.
+- **How to build:** use scene UI (`screenCanvas` / `frame` / `textLabel` / `image`), not `#html`, because only scene UI can pick a font. Paint the backing art with `oriverse/ui/paint_panel.py` (numpy/PIL), push it to this repo, and import it into the project from the raw GitHub URL.
+- **Engine quirk:** the UI blend treats image alpha roughly like a gamma-2.2 value (alpha 0.86 shows as about 0.5), so the painter stores `alpha^(1/2.2)`. Keep that step for every new panel image, and check panels over both bright sky and dark foliage.
+
 ## Work in progress
 - **Water:** back on the engine water (reflections of the bridge and houses work). A painted look for the water itself is still to come.
 - **Leftovers in the file:** unused `#scatter FlowersPink/FlowersRed`, the engine grass knobs in `#adjuster` (engine grass is off), and an outdated `#rules` text ("no heavy fullscreen oil-paint filter", "MonetBrushSurface").
