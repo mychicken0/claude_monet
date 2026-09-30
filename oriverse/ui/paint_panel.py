@@ -27,25 +27,31 @@ def sstep(e0, e1, x):
     return t * t * (3 - 2 * t)
 
 # bristle rows: a per-row value that changes every ~3 px vertically, smooth along x
-rows = vnoise(xx / 220.0, yy / 7.0, 5) * 0.7 + vnoise(xx / 80.0, yy / 3.0, 6) * 0.3
-# wash extent with brushy edges
-right = 1 - sstep(760, 960, xx + (rows - 0.5) * 200 + (fbm(xx / 30.0, yy / 25.0, 9) - 0.5) * 110)
-left = sstep(22, 44, xx + (rows - 0.5) * 16)
-top = sstep(30, 46, yy + (fbm(xx / 45.0, 0 * yy, 11) - 0.5) * 22)
-bot = 1 - sstep(338, 358, yy + (fbm(xx / 40.0, 0 * yy + 3, 12) - 0.5) * 26)
-alpha = 0.86 * right * left * top * bot
-# dry-brush breaks inside the fading edges only
-dry = sstep(0.25, 0.75, alpha / 0.86)
-alpha *= np.clip(0.6 + 0.4 * dry + (rows - 0.5) * (1 - dry) * 1.2, 0, 1)
-# slate colour: darker toward the left/center, a little cooler and lighter toward the fading edge
-mott = fbm(xx / 140.0, yy / 90.0, 21) - 0.5
-base = np.array([0.23, 0.26, 0.35], np.float32)
-light = np.array([0.32, 0.35, 0.45], np.float32)
-t = np.clip(xx / 1000.0 * 0.6 + mott * 0.5 + (rows - 0.5) * 0.25, 0, 1)[..., None]
-rgb = base * (1 - t) + light * t
-rgb *= (1 + (rows - 0.5) * 0.12 + (fbm(xx / 18.0, yy / 5.0, 31) - 0.5) * 0.08)[..., None]
-alpha *= np.clip(1 + (fbm(xx / 25.0, yy / 6.0, 33) - 0.5) * 0.25, 0, 1)
-
+# --- the indigo wash (reference: slate-indigo, darkest across the upper middle, cooling to a
+# lighter blue toward the lower-left and the right, where it dissolves in soft dry-brush patches;
+# watercolour-like mottling and a faint horizontal brush drag, no hard stripes) ---
+drag = fbm(xx / 70.0, yy / 7.0, 5)                       # horizontal brush drag (soft, not hair-thin)
+patch = fbm(xx / 34.0, yy / 14.0, 9)                     # patchy dry-brush break-up for the edges
+mott = fbm(xx / 150.0, yy / 80.0, 21)                    # large watercolour mottling
+# soft, uneven edges
+right = 1 - sstep(680, 1010, xx + (patch - 0.5) * 120 + (drag - 0.5) * 50)
+left = sstep(18, 52, xx + (patch - 0.5) * 26)
+top = sstep(28, 56, yy + (fbm(xx / 60.0, 0 * yy, 11) - 0.5) * 16)
+bot = 1 - sstep(324, 364, yy + (fbm(xx / 45.0, 0 * yy + 3, 12) - 0.5) * 24)
+alpha = 0.93 * right * left * top * bot
+# dry-brush: inside the fading margins the paint breaks into patches following the drag
+edge = 1 - sstep(0.55, 0.95, alpha / 0.93)
+alpha *= np.clip(1 - edge * sstep(0.35, 0.7, 1 - patch * 0.7 - drag * 0.3) * 0.75, 0, 1)
+# colour: deep slate-indigo core, cooler lighter blue toward edges / lower-left
+core = np.array([0.225, 0.26, 0.345], np.float32)       # ~ #3C4455
+deep = np.array([0.20, 0.225, 0.29], np.float32)          # darker band across the upper middle
+cool = np.array([0.36, 0.42, 0.54], np.float32)           # ~ #5C6B8A toward the edges
+band = np.exp(-((yy - 130) / 90.0) ** 2) * sstep(60, 300, xx) * (1 - sstep(560, 820, xx))
+t_edge = np.clip(edge * 0.6 + sstep(600, 990, xx) * 0.6 + sstep(250, 370, yy) * (1 - sstep(80, 420, xx)) * 0.5 + (mott - 0.5) * 0.5, 0, 1)
+rgb = core * (1 - t_edge[..., None]) + cool * t_edge[..., None]
+rgb = rgb * (1 - band[..., None] * 0.55) + deep * band[..., None] * 0.55
+rgb *= (1 + (drag - 0.5) * 0.10 + (mott - 0.5) * 0.08)[..., None]
+alpha *= np.clip(0.92 + (drag - 0.5) * 0.18, 0, 1)
 img = np.dstack([rgb, alpha])
 
 def line(img, x0, y0, x1, y1, w, col, a, fade_from=None):
@@ -117,5 +123,5 @@ pen(img, [(4, 362), (180, 364), (360, 361)], 2.8, gold, 0.95, seed=4, fade_from=
 for (cx, cy, sd) in [(16, 22, 5), (16, 362, 6)]:
     # a small ink knot where the drawn lines cross
     pen(img, [(cx - 2, cy - 1), (cx + 2, cy + 1)], 6.0, gold, 1.0, seed=sd, wobble=0, dry=0.0)
-Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8), "RGBA").save("quest_panel_v3.png")
+Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8), "RGBA").save("quest_panel_v4.png")
 print("ok")
