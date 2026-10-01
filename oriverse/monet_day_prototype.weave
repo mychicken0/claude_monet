@@ -967,13 +967,31 @@ out.color = vec4<f32>(col, 1.0);
 <svg viewBox="0 0 24 24"><path d="M12 3L21 12L12 21L3 12Z" fill="none" stroke="#EADBB4" stroke-width="2" stroke-linejoin="round"/><path d="M12 8.5L15.5 12L12 15.5L8.5 12Z" fill="#EADBB4"/></svg>
 #end
 #class QuestHud
+// The corner quest panel shows when the job changes or the map closes, holds for a
+// few seconds, then fades away by itself (IdleOpacity 0 = gone; raise it to keep a ghost).
+const HoldSecs = 6
+const FadeSecs = 2
+const IdleOpacity = 0
 // ShowQuest swaps the panel text when the job changes
 func ShowQuest(Title: Text, Goal: Text, Hint: Text) {
     FindChildUI("QuestTitle").SetText(Title)
     FindChildUI("QuestGoal").SetText(Goal)
     FindChildUI("QuestHint").SetText(Hint)
+    Pulse()
+}
+func Pulse() {
+    SetUiSubtreeOpacity(1, 0.3)
+    SetUiSubtreeOpacity(IdleOpacity, FadeSecs, 3, HoldSecs)
+}
+func Hide() {
+    SetUiSubtreeOpacity(0)
+}
+event OnSpawned {
+    Pulse()
 }
 #end
+// Each player gets their own copy (spawned and owned in #class player).
+saved QuestPanelUi {
 screenCanvas QuestPanel : QuestHud {
     frame QuestFrame { offset=(18,36) size=(320,120) color=#00000000 block_input=false
         image QuestBg { offset=(0,0) size=(320,120) image="image.@ghohoh404040.quest_panel_v5" }
@@ -984,14 +1002,210 @@ screenCanvas QuestPanel : QuestHud {
         textLabel QuestHint { offset=(58,78) size=(252,26) text="He's usually near the river." font="font.google.EB_Garamond" font_size=17 text_color=#E7DDC8 shadow_color=#00000030 }
     }
 }
+}
+
+// ============================================================
+// MAP SCREEN (M): top tabs, a painted slate side panel with the current objective,
+// a blank parchment sheet, and a hint bar. The painted backings are UI shaders,
+// so they need no image. param0/param1 = the panel size in base units, which keeps
+// the grain the same at any window size.
+// ============================================================
+material MapParchment { shader = "MapParchmentUi" param0 = 1160 param1 = 728 }
+#shader MapParchmentUi
+let sz = vec2<f32>(mat.params4[0].x, mat.params4[0].y);
+let q = ctx.uv * sz;
+let edge = min(min(q.x, sz.x - q.x), min(q.y, sz.y - q.y));
+// torn edge: a slow wander, small nicks and a little fuzz
+let wander = ori_fbm2(q.x / 46.0, q.y / 46.0, 3, 11u);
+let nick = ori_fbm2(q.x / 11.0, q.y / 11.0, 2, 12u);
+let fuzz = ori_fbm2(q.x / 3.5, q.y / 3.5, 1, 13u);
+let tear = 8.0 + wander * 7.0 + nick * 4.0 + fuzz * 1.2;
+let a = smoothstep(tear - 0.8, tear + 0.8, edge);
+let inner = edge - tear;
+// smooth pale paper: a slow tone drift and a very fine grain
+let cloud = ori_fbm2(q.x / 320.0, q.y / 320.0, 3, 21u);
+let grain = ori_fbm2(q.x / 2.2, q.y / 2.2, 2, 23u);
+var col = mix(vec3<f32>(0.885, 0.855, 0.775), vec3<f32>(0.925, 0.905, 0.84), cloud);
+col = col * (0.985 + grain * 0.03);
+// patchy warm stain toward the edges, and a thin darker lip at the tear
+let reach = 60.0 + ori_fbm2(q.x / 120.0 + 3.0, q.y / 120.0, 3, 22u) * 90.0;
+let stain = 1.0 - smoothstep(0.0, reach, inner);
+col = mix(col, vec3<f32>(0.80, 0.735, 0.60), stain * stain * 0.5);
+let lip = 1.0 - smoothstep(0.0, 3.0, inner);
+col = mix(col, vec3<f32>(0.56, 0.48, 0.37), lip * 0.45);
+// soft shadow just outside the sheet
+let shadow = smoothstep(tear - 7.0, tear, edge) * (1.0 - a) * 0.5;
+let alpha = a + shadow;
+ctx.out_color = vec4<f32>(pow(col, vec3<f32>(2.2)) * (a / max(alpha, 0.001)), alpha);
+#end
+
+// Charcoal slate sheet, smooth, rounded, with a soft hand-cut edge. param2 = core alpha
+// (kept near 1: a dark panel blended over a bright scene reads much thinner than its alpha).
+material MapSlateWash { shader = "SlateWashUi" param0 = 336 param1 = 560 param2 = 0.985 }
+#shader SlateWashUi
+let sz = vec2<f32>(mat.params4[0].x, mat.params4[0].y);
+let q = ctx.uv * sz;
+// rounded sheet with a slightly soft, hand-cut edge
+let r = 10.0;
+let dq = abs(q - sz * 0.5) - (sz * 0.5 - vec2<f32>(r));
+let d = length(max(dq, vec2<f32>(0.0))) + min(max(dq.x, dq.y), 0.0) - r;
+let rag = 1.5 + ori_fbm2(q.x / 26.0, q.y / 26.0, 2, 31u) * 2.5;
+let a = smoothstep(rag - 1.0, rag + 1.2, -d);
+let cloud = ori_fbm2(q.x / 220.0, q.y / 220.0, 3, 33u);
+let grain = ori_fbm2(q.x / 2.5, q.y / 2.5, 2, 34u);
+var col = mix(vec3<f32>(0.125, 0.137, 0.165), vec3<f32>(0.158, 0.172, 0.205), cloud);
+col = col * (0.985 + grain * 0.03);
+ctx.out_color = vec4<f32>(pow(col, vec3<f32>(2.2)), a * mat.params4[0].z);
+#end
+
+#svg MapDiamondGold size=64
+<svg viewBox="0 0 24 24"><path d="M12 3L21 12L12 21L3 12Z" fill="none" stroke="#E3B45A" stroke-width="2" stroke-linejoin="round"/><path d="M12 8.5L15.5 12L12 15.5L8.5 12Z" fill="#E3B45A"/></svg>
+#end
+#svg MapOrnament size=48
+<svg viewBox="0 0 24 24"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5Z" fill="#E3B45A"/></svg>
+#end
+#svg MapIconRoad size=64
+<svg viewBox="0 0 24 24"><path d="M10 3L4 21H7L11.2 3Z" fill="#D9D2C2"/><path d="M14 3L20 21H17L12.8 3Z" fill="#D9D2C2"/><path d="M11.6 6H12.4V9H11.6Z" fill="#D9D2C2"/><path d="M11.4 12H12.6V15.5H11.4Z" fill="#D9D2C2"/><path d="M11.2 18H12.8V21H11.2Z" fill="#D9D2C2"/></svg>
+#end
+#svg MapIconBridge size=64
+<svg viewBox="0 0 24 24"><path d="M2 8H22V12H20V20H17C17 16.5 14.8 14 12 14C9.2 14 7 16.5 7 20H4V12H2Z" fill="#D9D2C2"/></svg>
+#end
+#svg MapIconTown size=64
+<svg viewBox="0 0 24 24"><path d="M3 11L12 3L21 11V21H14V15H10V21H3Z" fill="#D9D2C2"/></svg>
+#end
+#svg MapIconTower size=64
+<svg viewBox="0 0 24 24"><path d="M7 21V9H5V4H8V6H10.5V4H13.5V6H16V4H19V9H17V21H13.5V16H10.5V21Z" fill="#D9D2C2"/></svg>
+#end
+#svg MapIconPin size=64
+<svg viewBox="0 0 24 24"><path d="M12 2C8.1 2 5 5.1 5 9C5 14 12 22 12 22C12 22 19 14 19 9C19 5.1 15.9 2 12 2Z" fill="#E3B45A"/><circle cx="12" cy="9" r="2.6" fill="#2A3040"/></svg>
+#end
+#svg MapIconMouseClick size=64
+<svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="5.5" fill="none" stroke="#D9D2C2" stroke-width="1.5"/><path d="M12 3.3C9.3 3.3 7.3 5.3 7.3 8V10.5H12Z" fill="#E3B45A"/></svg>
+#end
+#svg MapIconMouseWheel size=64
+<svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="5.5" fill="none" stroke="#D9D2C2" stroke-width="1.5"/><rect x="10.8" y="5.5" width="2.4" height="5" rx="1.2" fill="#E3B45A"/></svg>
+#end
+
+#class MapHud
+// SetQuest mirrors the current job in the side panel
+func SetQuest(Title: Text, Body: Text) {
+    FindChildUI("MapQuestTitle").SetText(Title)
+    FindChildUI("MapQuestBody").SetText(Body)
+}
+func SetRegionProgress(Found: Number, Total: Number) {
+    FindChildUI("MapProgress").SetProgress(Found, Total)
+    FindChildUI("MapProgressText").SetText(Found.ToText() + " / " + Total.ToText())
+}
+func Open() {
+    FindChildUI("MapRoot").SetVisible(true)
+    SetUiSubtreeOpacity(0)
+    SetUiSubtreeOpacity(1, 0.25)
+}
+func Close() {
+    SetUiSubtreeOpacity(0, 0.2)
+}
+func Hide() {
+    FindChildUI("MapRoot").SetVisible(false)
+}
+event OnSpawned {
+    SetRegionProgress(4, 12)
+}
+#end
+
+saved MapScreenUi {
+screenCanvas MapScreen : MapHud {
+    frame MapRoot { cover=screen color=gradient(#8798B4B0, #A2A59EB0) block_input=true visible=false
+        frame MapTopBar { anchor=(center,top) size=(4000,62) color=gradient(#232938F5, #232938EC) block_input=false }
+        frame MapTopLine { anchor=(center,top) offset=(0,62) size=(4000,1) color=#AEB9CC40 block_input=false }
+        frame MapBottomBar { anchor=(center,bottom) size=(4000,70) color=gradient(#232938EC, #232938F5) block_input=false }
+        frame MapBottomLine { anchor=(center,bottom) offset=(0,-70) size=(4000,1) color=#AEB9CC40 block_input=false }
+        frame MapStage { anchor=(center,center) size=(1600,900) color=#00000000 block_input=false
+            // ---- top tabs (only Map is wired for now)
+            frame MapKeyQ { offset=(474,17) size=(28,28) color=#00000000 border_width=1 border_color=#B9B3A5 corner_radius=4 block_input=false
+                textLabel MapKeyQText { text="Q" align=(center,center) font="font.google.EB_Garamond" font_size=16 text_color=#D9D2C2 }
+            }
+            textLabel MapTabJournal { offset=(526,15) size=(100,32) text="Journal" align=(center,center) font="font.google.EB_Garamond" font_size=19 text_color=#CFC8B8 }
+            textLabel MapTabMap { offset=(640,10) size=(100,40) text="Map" align=(center,center) font="font.google.EB_Garamond" font_size=26 text_color=#E8C88A shadow_color=#00000030 }
+            textLabel MapTabInventory { offset=(752,15) size=(110,32) text="Inventory" align=(center,center) font="font.google.EB_Garamond" font_size=19 text_color=#CFC8B8 }
+            textLabel MapTabSkills { offset=(872,15) size=(80,32) text="Skills" align=(center,center) font="font.google.EB_Garamond" font_size=19 text_color=#CFC8B8 }
+            textLabel MapTabSystem { offset=(962,15) size=(90,32) text="System" align=(center,center) font="font.google.EB_Garamond" font_size=19 text_color=#CFC8B8 }
+            frame MapKeyE { offset=(1070,17) size=(28,28) color=#00000000 border_width=1 border_color=#B9B3A5 corner_radius=4 block_input=false
+                textLabel MapKeyEText { text="E" align=(center,center) font="font.google.EB_Garamond" font_size=16 text_color=#D9D2C2 }
+            }
+            frame MapTabLineL { offset=(630,60) size=(60,2) color=gradient(#E3B45A00, #E3B45AFF, 90) block_input=false }
+            frame MapTabLineR { offset=(690,60) size=(60,2) color=gradient(#E3B45AFF, #E3B45A00, 90) block_input=false }
+            image MapTabOrnament { offset=(683,54) size=(14,14) image="baked.MapOrnament.color" }
+            frame MapKeyM { offset=(1474,17) size=(28,28) color=#00000000 border_width=1 border_color=#B9B3A5 corner_radius=4 block_input=false
+                textLabel MapKeyMText { text="M" align=(center,center) font="font.google.EB_Garamond" font_size=16 text_color=#D9D2C2 }
+            }
+            textLabel MapCloseLabel { offset=(1514,15) size=(70,32) text="Close" align=(left,center) font="font.google.EB_Garamond" font_size=19 text_color=#D9D2C2 }
+            // ---- side panel: current objective, discovered locations, region progress
+            frame MapSide { offset=(36,108) size=(336,560) material="MapSlateWash" block_input=false
+                textLabel MapSideTitle { offset=(22,16) size=(290,32) text="Current Objective" font="font.google.EB_Garamond" font_size=22 text_color=#E9E1CF }
+                frame MapSideLine1 { offset=(22,52) size=(292,1) color=#C2A25E80 block_input=false }
+                image MapQuestIcon { offset=(24,74) size=(22,22) image="baked.MapDiamondGold.color" }
+                textLabel MapQuestTitle { offset=(58,68) size=(258,32) text="A Letter for the Mill" font="font.google.EB_Garamond" font_size=21 text_color=#E8C88A }
+                textLabel MapQuestBody { offset=(58,100) size=(258,84) text="Deliver the letter to the miller. He's usually near the river." font="font.google.EB_Garamond" font_size=18 text_color=#CFC8B8 }
+                frame MapSideDivL { offset=(22,196) size=(134,1) color=gradient(#C2A25E00, #C2A25E90, 90) block_input=false }
+                image MapSideDivOrn { offset=(162,190) size=(12,12) image="baked.MapOrnament.color" }
+                frame MapSideDivR { offset=(180,196) size=(134,1) color=gradient(#C2A25E90, #C2A25E00, 90) block_input=false }
+                textLabel MapPlacesTitle { offset=(24,213) size=(290,32) text="Discovered Locations" font="font.google.EB_Garamond" font_size=21 text_color=#E9E1CF }
+                frame MapSideLine2 { offset=(22,248) size=(292,1) color=#C2A25E80 block_input=false }
+                frame MapPlaceHere { offset=(18,262) size=(300,36) color=#FFFFFF16 corner_radius=4 block_input=false }
+                image MapPlace0Icon { offset=(32,268) size=(24,24) image="baked.MapIconRoad.color" }
+                textLabel MapPlace0 { offset=(72,264) size=(200,32) text="Meadow Road" align=(left,center) font="font.google.EB_Garamond" font_size=19 text_color=#E9E1CF }
+                image MapPlace0Pin { offset=(286,270) size=(20,20) image="baked.MapIconPin.color" }
+                image MapPlace1Icon { offset=(32,312) size=(24,24) image="baked.MapIconBridge.color" }
+                textLabel MapPlace1 { offset=(72,308) size=(200,32) text="Stone Bridge" align=(left,center) font="font.google.EB_Garamond" font_size=19 text_color=#D9D2C2 }
+                image MapPlace2Icon { offset=(32,356) size=(24,24) image="baked.MapIconTown.color" }
+                textLabel MapPlace2 { offset=(72,352) size=(200,32) text="Riverside Town" align=(left,center) font="font.google.EB_Garamond" font_size=19 text_color=#D9D2C2 }
+                image MapPlace3Icon { offset=(32,400) size=(24,24) image="baked.MapIconTower.color" }
+                textLabel MapPlace3 { offset=(72,396) size=(200,32) text="Watch Tower" align=(left,center) font="font.google.EB_Garamond" font_size=19 text_color=#D9D2C2 }
+                frame MapSideDiv2L { offset=(22,448) size=(134,1) color=gradient(#C2A25E00, #C2A25E90, 90) block_input=false }
+                image MapSideDiv2Orn { offset=(162,442) size=(12,12) image="baked.MapOrnament.color" }
+                frame MapSideDiv2R { offset=(180,448) size=(134,1) color=gradient(#C2A25E90, #C2A25E00, 90) block_input=false }
+                textLabel MapProgressTitle { offset=(26,468) size=(200,30) text="Region Progress" font="font.google.EB_Garamond" font_size=19 text_color=#E8C88A }
+                progressBar MapProgress { offset=(28,510) size=(216,9) color=#E3B45A background_color=#00000000 corner_radius=4 border_width=1 border_color=#A8A29480 }
+                textLabel MapProgressText { offset=(256,499) size=(64,30) text="4 / 12" align=(right,center) font="font.google.EB_Garamond" font_size=18 text_color=#D9D2C2 }
+            }
+            // ---- the map sheet: blank paper for now
+            frame MapPaper { offset=(400,84) size=(1160,728) material="MapParchment" block_input=false }
+            // ---- hint bar (not wired yet: the sheet is still blank)
+            image MapBottomOrnament { offset=(793,823) size=(14,14) image="baked.MapOrnament.color" }
+            image MapHintClickIcon { offset=(500,852) size=(24,26) image="baked.MapIconMouseClick.color" }
+            textLabel MapHintClick { offset=(530,851) size=(104,28) text="Place Marker" align=(left,center) font="font.google.EB_Garamond" font_size=17 text_color=#D9D2C2 }
+            frame MapHintSep1 { offset=(642,855) size=(1,20) color=#FFFFFF30 block_input=false }
+            image MapHintWheelIcon { offset=(658,852) size=(24,26) image="baked.MapIconMouseWheel.color" }
+            textLabel MapHintWheel { offset=(688,851) size=(50,28) text="Zoom" align=(left,center) font="font.google.EB_Garamond" font_size=17 text_color=#D9D2C2 }
+            frame MapHintSep2 { offset=(746,855) size=(1,20) color=#FFFFFF30 block_input=false }
+            frame MapKeyR { offset=(764,852) size=(26,26) color=#00000000 border_width=1 border_color=#B9B3A5 corner_radius=4 block_input=false
+                textLabel MapKeyRText { text="R" align=(center,center) font="font.google.EB_Garamond" font_size=15 text_color=#D9D2C2 }
+            }
+            textLabel MapHintCenter { offset=(800,851) size=(132,28) text="Center on Player" align=(left,center) font="font.google.EB_Garamond" font_size=17 text_color=#D9D2C2 }
+            frame MapHintSep3 { offset=(940,855) size=(1,20) color=#FFFFFF30 block_input=false }
+            frame MapKeyF { offset=(958,852) size=(26,26) color=#00000000 border_width=1 border_color=#B9B3A5 corner_radius=4 block_input=false
+                textLabel MapKeyFText { text="F" align=(center,center) font="font.google.EB_Garamond" font_size=15 text_color=#D9D2C2 }
+            }
+            textLabel MapHintJournal { offset=(994,851) size=(110,28) text="Show Journal" align=(left,center) font="font.google.EB_Garamond" font_size=17 text_color=#D9D2C2 }
+        }
+    }
+}
+}
 
 // ============================================================
 // PLAYER
 // ============================================================
 #class player
+var Hud: Object
+var MapUi: Object
+var MapOpen = false
 event OnSpawned {
     SetDefaultPlayerControlsEnabled(true)
     SetCameraToFirstPerson()
+    Hud = SpawnCanvas(SavedObject.QuestPanelUi, Origin())
+    Hud.SetPlayerOwnerIndex(GetPlayerIndex())
+    MapUi = SpawnCanvas(SavedObject.MapScreenUi, Origin())
+    MapUi.SetPlayerOwnerIndex(GetPlayerIndex())
     SetMaterialParameterNumber(Material.MonetPaint, 0, 0.65)
     SetMaterialParameterNumber(Material.MonetPaint, 1, 0.55)
     SetMaterialParameterNumber(Material.MonetPaint, 2, 0.35)
@@ -1015,6 +1229,27 @@ event OnSpawned {
             if Mode == 1 { SetScreenShader(Material.Ps1Screen) }
             if Mode == 2 { SetScreenShader(None) }
         }
+    }
+}
+// M opens the map (the quest moves into its side panel); M again closes it and the
+// corner quest panel shows once more, then fades away by itself.
+event KeyboardDownByThisPlayer[M] {
+    if MapOpen {
+        MapOpen = false
+        (MapUi as MapHud).Close()
+        SetCursorUiMode(false)
+        SetDefaultPlayerControlsEnabled(true)
+        (Hud as QuestHud).Pulse()
+        SetCrosshairVisible(true)
+        Wait(0.25)
+        if MapOpen == false { (MapUi as MapHud).Hide() }
+    } else {
+        MapOpen = true
+        (Hud as QuestHud).Hide()
+        (MapUi as MapHud).Open()
+        SetDefaultPlayerControlsEnabled(false)
+        SetCursorUiMode(true)
+        SetCrosshairVisible(false)
     }
 }
 #end
