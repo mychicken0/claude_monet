@@ -1,7 +1,8 @@
 # Traveler base bodies (male, female): anatomy tables -> closed ring lofts + ellipsoid masses.
 # One source for two outputs:
 #   python3 traveler_body.py render <out.png> [male|female]                  local flat-shaded front/back/side sheet
-#   python3 traveler_body.py weave  <out.weave> [male|female] [--no-textures]  the #mesh source for the Oriverse world
+#   python3 traveler_body.py weave  <out.weave> [male|female] [--no-textures]  one self-contained base-body #mesh
+#   python3 traveler_body.py wardrobe <out.weave>                            shared tables, garment parts, outfit meshes, hat + pack
 # The module-level tables are the male body; FEMALE holds the same names for the female body (select("female")).
 # Both meshes share the TravelerSkin / TravelerCloth textures: emit the second one with --no-textures.
 # Frame: cm, Z up, the character FACES +X, LEFT hand = +Y (Oriverse canon). T-pose rest.
@@ -101,14 +102,32 @@ GARMENTS = [
     dict(name="trunks", p="tr", secs="t", band="hips", torso=(86.5, 103.0), leg=(81.0, 96.0), lumps=[0],
          gusset=((-0.5, 0, 85), (7.8, 6.8, 3.4)), verts=420),
 ]
+# hair shell rings: z, centre x, half width, front, back
+HAIR = [
+    (161.0, -4.0, 5.6, 1.5, 4.6),
+    (164.0, -3.0, 8.3, 2.5, 7.4),
+    (168.0, -2.0, 9.3, 3.0, 9.4),
+    (172.0, -1.0, 9.5, 4.5, 10.2),
+    (174.5, -0.3, 9.4, 6.5, 10.4),   # hairline: the front swings forward over the crown
+    (176.5, 0.5, 8.8, 10.6, 10.4),
+    (179.0, 0.5, 6.6, 8.2, 8.4),
+    (181.3, 0.5, 3.6, 4.4, 4.6),
+    (182.4, 0.5, 1.0, 1.2, 1.2),
+]
+HAIR_RINGS = 12
+SKIRT = None
+# wardrobe landmarks: garment z ranges on this body (see pieces() for what is built from them)
+WEAR = dict(P="TravelerM", t="tm", crotch=86.5, waist=103.0, gusset=((-0.5, 0, 85), (7.8, 6.8, 3.4)),
+            trunks_hem=81.0, knee_hem=43.0, ankle_hem=9.0, boot_top=31.0, shirt_hem=97.0, neck=152.0,
+            sleeve_long=51.0, sleeve_short=22.0, vest=(100.0, 149.0), chest_lump=None, shoe_top=13.0)
 # how far a garment vertex may look for skin to copy weights from (cap vertices sit deep inside the torso)
 REACH = 8
 # where each bone's skin region starts (z unless noted): see the region list in weave()
 SKIN = dict(spine=101, torso=114, neck=152, neck_w=12, head=158, arm_z=120, thigh=86, shin=48, foot=9, toe_x=12)
 # wearable mount points (bone-pinned): name, position, axis, bone. Rigid pieces attach with AttachToAnchor(body, name).
 SOCKETS = [
-    ("Hat", (1, 0, 181), (0, 0, 1), "Head"), ("Face", (11, 0, 169), (1, 0, 0), "Head"),
-    ("Chest", (12.5, 0, 134), (1, 0, 0), "Torso"), ("Back", (-11.5, 0, 132), (-1, 0, 0), "Torso"),
+    ("Hat", (1, 0, 178), (0, 0, 1), "Head"), ("Face", (11, 0, 169), (1, 0, 0), "Head"),
+    ("Chest", (12.5, 0, 134), (1, 0, 0), "Torso"), ("Back", (-21, 0, 128), (0, 0, 1), "Torso"),
     ("BeltFront", (10, 0, 103), (1, 0, 0), "Root"), ("BeltBack", (-10, 0, 103), (-1, 0, 0), "Root"),
     ("HipR", (0, -17.5, 97), (0, -1, 0), "Root"), ("HipL", (0, 17.5, 97), (0, 1, 0), "Root"),
     ("ShoulderR", (0, -19, 150), (0, 0, 1), "ScapulaR"), ("ShoulderL", (0, 19, 150), (0, 0, 1), "ScapulaL"),
@@ -211,10 +230,41 @@ FEMALE = dict(
              gusset=((-0.5, 0, 79), (7.8, 6.8, 3.4)), verts=420),
         dict(name="bandeau", p="ba", secs="a", band="band", torso=(116.5, 126.5), leg=None, lumps=[1], gusset=None, verts=320),
     ],
+    HAIR=[
+        (128.0, -11.5, 3.2, 1.6, 2.6),   # a low ponytail down the back
+        (133.0, -11.5, 4.6, 2.2, 3.2),
+        (138.0, -9.8, 5.6, 2.4, 3.8),
+        (143.0, -7.0, 6.4, 2.6, 4.6),
+        (147.5, -4.2, 7.6, 3.0, 6.0),
+        (151.0, -2.6, 8.5, 3.0, 8.0),
+        (155.5, -1.6, 9.0, 3.2, 9.4),
+        (159.5, -0.8, 9.1, 4.6, 10.0),
+        (162.2, -0.2, 9.0, 6.6, 10.2),   # hairline
+        (164.2, 0.5, 8.5, 10.0, 10.0),
+        (166.6, 0.5, 6.4, 7.6, 8.2),
+        (168.8, 0.5, 3.4, 4.2, 4.4),
+        (169.8, 0.5, 1.0, 1.2, 1.2),
+    ],
+    HAIR_RINGS=18,
+    # knee-length skirt rings: z, half width, front, back (worn outside the blouse, under the bodice)
+    SKIRT=[
+        # z, half width, front, back - kept 2 cm outside the shirt at the hips, so a tucked shirt never shows through
+        (55.0, 23.0, 14.5, 15.5),
+        (64.0, 22.6, 14.3, 15.6),
+        (74.0, 22.2, 14.1, 15.8),
+        (84.0, 22.0, 14.0, 16.0),
+        (90.0, 21.6, 14.0, 15.9),
+        (96.0, 20.6, 13.8, 15.2),
+        (101.0, 18.4, 13.2, 13.8),
+        (104.0, 17.0, 12.6, 12.8),
+    ],
+    WEAR=dict(P="TravelerF", t="tf", crotch=80.5, waist=96.0, gusset=((-0.5, 0, 79), (7.8, 6.8, 3.4)),
+              trunks_hem=75.5, knee_hem=40.0, ankle_hem=9.0, boot_top=29.0, shirt_hem=92.0, neck=141.0,
+              sleeve_long=47.0, sleeve_short=20.0, vest=(103.0, 137.0), chest_lump=1, shoe_top=12.5),
     SKIN=dict(spine=94, torso=106, neck=141.5, neck_w=11, head=147, arm_z=110, thigh=80, shin=44.5, foot=9, toe_x=11),
     SOCKETS=[
-        ("Hat", (1, 0, 168.5), (0, 0, 1), "Head"), ("Face", (10.5, 0, 157), (1, 0, 0), "Head"),
-        ("Chest", (13.5, 0, 124), (1, 0, 0), "Torso"), ("Back", (-10, 0, 122), (-1, 0, 0), "Torso"),
+        ("Hat", (1, 0, 165.6), (0, 0, 1), "Head"), ("Face", (10.5, 0, 157), (1, 0, 0), "Head"),
+        ("Chest", (13.5, 0, 124), (1, 0, 0), "Torso"), ("Back", (-20, 0, 119), (0, 0, 1), "Torso"),
         ("BeltFront", (9, 0, 97), (1, 0, 0), "Root"), ("BeltBack", (-10, 0, 97), (-1, 0, 0), "Root"),
         ("HipR", (0, -18, 90), (0, -1, 0), "Root"), ("HipL", (0, 18, 90), (0, 1, 0), "Root"),
         ("ShoulderR", (0, -16.5, 139.5), (0, 0, 1), "ScapulaR"), ("ShoulderL", (0, 16.5, 139.5), (0, 0, 1), "ScapulaL"),
@@ -235,12 +285,14 @@ FEMALE = dict(
 )
 
 
+MALE = {k: globals()[k] for k in FEMALE}
+
+
 def select(variant):
     """Swap the module tables to a variant ("male" is the module default)."""
-    if variant == "female":
-        globals().update(FEMALE)
-    elif variant != "male":
+    if variant not in ("male", "female"):
         raise SystemExit(f"unknown variant {variant}")
+    globals().update(FEMALE if variant == "female" else MALE)
 
 
 # ---------------------------------------------------------------- geometry
@@ -441,7 +493,49 @@ RING = """    var ring = [];
     {secs} = append({secs}, ring);"""
 
 
-def weave(path, voxel=1.2, verts=1500, fuse=True, textures=True):
+B = 400   # selection boxes reach this far (cm)
+
+
+def rig(L, body="body", sockets=True, skin=True):
+    """Append bones, sockets and the region skinning of `body`; returns the name of the fully skinned geometry.
+    Every rigged mesh gets a "Fit" socket at the authored origin: wearable pieces snap onto the body with
+    piece.AttachToAnchor(body, "Fit", "Fit"), whatever their own bounds are."""
+    for n, p, par in BONES:
+        L.append(f'bone("{n}", pos: ({f(p[0])}, {f(p[1])}, {f(p[2])})' + (f', parent: "{par}"' if par else "") + ");")
+    for n, p, ax, bn in (SOCKETS if sockets else []):
+        L.append(f'socket("{n}", at: ({f(p[0])}, {f(p[1])}, {f(p[2])}), axis: ({f(ax[0])}, {f(ax[1])}, {f(ax[2])}), bone: "{bn}");')
+    L.append('socket("Fit", at: (0, 0, 0), axis: (0, 0, 1));')
+    if not skin:
+        return body
+    # Skin: everything starts on Root; each bone then claims the box beyond its joint, blended over `soft` cm
+    # back toward its parent. Parents come before children; a limb pins the other side so legs never share weights.
+    sh_y, el_y, wr_y = -SHOULDER[1], -SHOULDER[1] + ELBOW_D, -SHOULDER[1] + WRIST_D
+    K = SKIN
+    regions = [("Spine", (-B, -B, K["spine"]), (B, B, B), 8, None), ("Torso", (-B, -B, K["torso"]), (B, B, B), 8, None),
+               ("Neck", (-B, -K["neck_w"], K["neck"]), (B, K["neck_w"], B), 4, None), ("Head", (-B, -B, K["head"]), (B, B, B), 4, None)]
+    for side, sg in (("R", -1), ("L", 1)):
+        y0, y1 = (-B, -0.1) if sg < 0 else (0.1, B)
+        other = ((-B, 0.1, -B), (B, B, B)) if sg < 0 else ((-B, -B, -B), (B, -0.1, B))
+        yy = lambda d: (-B, -d) if sg < 0 else (d, B)
+        regions += [(f"UpperArm{side}", (-B, yy(sh_y + 3)[0], K["arm_z"]), (B, yy(sh_y + 3)[1], B), 7, None),
+                    (f"Forearm{side}", (-B, yy(el_y + 2)[0], K["arm_z"]), (B, yy(el_y + 2)[1], B), 4, None),
+                    (f"Hand{side}", (-B, yy(wr_y + 1.5)[0], K["arm_z"]), (B, yy(wr_y + 1.5)[1], B), 3, None),
+                    (f"Thigh{side}", (-B, y0, -B), (B, y1, K["thigh"]), 6, other),
+                    (f"Shin{side}", (-B, y0, -B), (B, y1, K["shin"]), 5, other),
+                    (f"Foot{side}", (-B, y0, -B), (B, y1, K["foot"]), 3, other),
+                    (f"Toe{side}", (K["toe_x"], y0, -B), (B, y1, K["foot"]), 3, other)]
+    L.append(f'let rooted = skin_weights({body}, selection: select_verts({body}, min: (-{B}, -{B}, -{B}), max: ({B}, {B}, {B})), bones: "Root", weights: [1]);')
+    prev = "rooted"
+    for i, (bone, lo, hi, soft, pin) in enumerate(regions):
+        v = lambda t: f"({f(t[0])}, {f(t[1])}, {f(t[2])})"
+        pins = f", pins: select_verts({prev}, min: {v(pin[0])}, max: {v(pin[1])})" if pin else ""
+        L.append(f'let w{i} = soft_selection({prev}, selection: select_verts({prev}, min: {v(lo)}, max: {v(hi)}), radius: {soft}, falloff: "smooth", distance: "surface"{pins});')
+        L.append(f'let s{i} = skin_weights({prev}, selection: w{i}, bones: "{bone}", weights: [1]);')
+        prev = f"s{i}"
+    return prev
+
+
+def weave(path, voxel=1.2, verts=1500, fuse=True, textures=True, dressed=False):
     S = lambda t: f'sample_path_axis({t}, axis: "z", at: k, interpolation: "pchip")'
     L = [f"#mesh {NAME}"]
     if textures:
@@ -449,6 +543,9 @@ def weave(path, voxel=1.2, verts=1500, fuse=True, textures=True):
     L += ["// Generated by oriverse/models/traveler_body.py - edit the tables there, not this block.",
          "// Each limb is a loft of superellipse rings sampled from the tables (two columns per table, keyed by the last value).",
          "budget(verts: 30000, indices: 90000);",
+         # the player object is a 40 x 40 x 180 box and SetModel fits a model's reference box into it by height:
+         # without this the 168 cm woman is drawn 7% too big and pokes through every piece she wears
+         "sim_box(min: (-20, -20, 0), max: (20, 20, 180));",
          f"let to_a = {table(TORSO, (1, 2), 0)};", f"let to_b = {table(TORSO, (3, 4), 0)};",
          f"let he_a = {table(HEAD, (1, 2), 0)};", f"let he_b = {table(HEAD, (3, 4), 0)};",
          f"let ar_a = {table(ARM, (1, 2), 0)};", f"let ar_b = {table(ARM, (3, 4), 0)};", f"let ar_c = {table(ARM, (5, 5), 0)};",
@@ -505,7 +602,10 @@ def weave(path, voxel=1.2, verts=1500, fuse=True, textures=True):
         L.append(f"let low = decimate(fused, verts: {verts});")
         G = f(GAP)
         C = 'material: "TravelerCloth"'
-        for g in GARMENTS:
+        # underwear is a wardrobe piece of its own (hidden under trousers, or the two would share one surface);
+        # dressed=True fuses it into the body instead, for a stand-alone figure
+        worn = GARMENTS if dressed else []
+        for g in worn:
             p, parts, side = g["p"], [], []
             if g["torso"]:
                 loop(f"{g['secs']}t_secs", g["torso"][0], g["torso"][1], 7, [f"let a = {S('to_a')};", f"let b = {S('to_b')};"],
@@ -532,41 +632,12 @@ def weave(path, voxel=1.2, verts=1500, fuse=True, textures=True):
             parts += [f"{p}_right", f"mirror({p}_right, normal: (0, 1, 0))"]
             L.append(f'let {g["name"]} = decimate(voxel_remesh(merge({", ".join(parts)}), voxel: {voxel}, mode: "smooth"), verts: {g["verts"]});')
         L.append("let body = flat_shade(low);")
-        for g in GARMENTS:
+        for g in worn:
             L.append(f'let {g["name"]}_flat = flat_shade({g["name"]});')
     else:
         L.append("let body = flat_shade(raw);")
-    for n, p, par in BONES:
-        L.append(f'bone("{n}", pos: ({f(p[0])}, {f(p[1])}, {f(p[2])})' + (f', parent: "{par}"' if par else "") + ");")
-    for n, p, ax, bn in SOCKETS:
-        L.append(f'socket("{n}", at: ({f(p[0])}, {f(p[1])}, {f(p[2])}), axis: ({f(ax[0])}, {f(ax[1])}, {f(ax[2])}), bone: "{bn}");')
-    # Skin: everything starts on Root; each bone then claims the box beyond its joint, blended over `soft` cm
-    # back toward its parent. Parents come before children; a limb pins the other side so legs never share weights.
-    B = 400
-    sh_y, el_y, wr_y = -SHOULDER[1], -SHOULDER[1] + ELBOW_D, -SHOULDER[1] + WRIST_D
-    K = SKIN
-    regions = [("Spine", (-B, -B, K["spine"]), (B, B, B), 8, None), ("Torso", (-B, -B, K["torso"]), (B, B, B), 8, None),
-               ("Neck", (-B, -K["neck_w"], K["neck"]), (B, K["neck_w"], B), 4, None), ("Head", (-B, -B, K["head"]), (B, B, B), 4, None)]
-    for side, sg in (("R", -1), ("L", 1)):
-        y0, y1 = (-B, -0.1) if sg < 0 else (0.1, B)
-        other = ((-B, 0.1, -B), (B, B, B)) if sg < 0 else ((-B, -B, -B), (B, -0.1, B))
-        yy = lambda d: (-B, -d) if sg < 0 else (d, B)
-        regions += [(f"UpperArm{side}", (-B, yy(sh_y + 3)[0], K["arm_z"]), (B, yy(sh_y + 3)[1], B), 7, None),
-                    (f"Forearm{side}", (-B, yy(el_y + 2)[0], K["arm_z"]), (B, yy(el_y + 2)[1], B), 4, None),
-                    (f"Hand{side}", (-B, yy(wr_y + 1.5)[0], K["arm_z"]), (B, yy(wr_y + 1.5)[1], B), 3, None),
-                    (f"Thigh{side}", (-B, y0, -B), (B, y1, K["thigh"]), 6, other),
-                    (f"Shin{side}", (-B, y0, -B), (B, y1, K["shin"]), 5, other),
-                    (f"Foot{side}", (-B, y0, -B), (B, y1, K["foot"]), 3, other),
-                    (f"Toe{side}", (K["toe_x"], y0, -B), (B, y1, K["foot"]), 3, other)]
-    L.append(f'let rooted = skin_weights(body, selection: select_verts(body, min: (-{B}, -{B}, -{B}), max: ({B}, {B}, {B})), bones: "Root", weights: [1]);')
-    prev = "rooted"
-    for i, (bone, lo, hi, soft, pin) in enumerate(regions):
-        v = lambda t: f"({f(t[0])}, {f(t[1])}, {f(t[2])})"
-        pins = f", pins: select_verts({prev}, min: {v(pin[0])}, max: {v(pin[1])})" if pin else ""
-        L.append(f'let w{i} = soft_selection({prev}, selection: select_verts({prev}, min: {v(lo)}, max: {v(hi)}), radius: {soft}, falloff: "smooth", distance: "surface"{pins});')
-        L.append(f'let s{i} = skin_weights({prev}, selection: w{i}, bones: "{bone}", weights: [1]);')
-        prev = f"s{i}"
-    if fuse:
+    prev = rig(L)
+    if fuse and dressed:
         # garments copy the body's weights from the nearest skin, so they bend exactly like what they cover
         flats = [f'{g["name"]}_flat' for g in GARMENTS]
         if len(flats) > 1:
@@ -581,10 +652,280 @@ def weave(path, voxel=1.2, verts=1500, fuse=True, textures=True):
     print("saved", path, sum(len(x) for x in L), "chars")
 
 
+# ---------------------------------------------------------------- wardrobe emit
+# Every wearable is its own rigged mesh: the garment geometry alone, on the same 21 bones as the body. In the world
+# each worn piece is an object attached to the player ("Fit" socket) that is told to play the same clip in the same
+# tick, so it moves exactly like the skin under it; SetColor tints it, so one white mesh serves every colour.
+# Geometry lives in #meshpart blocks that read the shared tables from #meshdefs; bones and skin weights are
+# mesh-level statements, so each piece #mesh repeats the rig.
+TEXTURES = [("TravWear", "#F4F1EA"), ("TravStraw", "#D9BE7C"), ("TravIndigo", "#3F4C78"), ("TravTan", "#8C6240"),
+            ("TravLeather", "#3E2C22"), ("TravCream", "#D8CDB2")]
+LAYER = dict(pants=1.5, shirt=2.3, boot=2.4, sole=1.6, vest=3.4)   # cm off the skin; a larger layer is worn outside
+BUST = 0.6     # extra room over the bust: a low-poly dome cuts inside the rounder one under it
+
+
+def defs(t):
+    """Shared table lets for the current variant, prefixed so no mesh local can shadow them."""
+    T = [(f"{t}_to_a", TORSO, (1, 2)), (f"{t}_to_b", TORSO, (3, 4)), (f"{t}_he_a", HEAD, (1, 2)), (f"{t}_he_b", HEAD, (3, 4)),
+         (f"{t}_ar_a", ARM, (1, 2)), (f"{t}_ar_b", ARM, (3, 4)), (f"{t}_ar_c", ARM, (5, 5)),
+         (f"{t}_le_a", LEG, (1, 2)), (f"{t}_le_b", LEG, (3, 4)), (f"{t}_le_c", LEG, (5, 6)), (f"{t}_le_d", LEG, (7, 7)),
+         (f"{t}_fo_a", FOOT, (1, 2)), (f"{t}_ha_a", HAIR, (1, 2)), (f"{t}_ha_b", HAIR, (3, 4))]
+    if SKIRT:
+        T += [(f"{t}_sk_a", SKIRT, (1, 2)), (f"{t}_sk_b", SKIRT, (3, 3))]
+    return [f"let {n} = {table(rows, cols, 0)};" for n, rows, cols in T]
+
+
+def parts():
+    """#meshpart blocks for the current variant."""
+    P, t, W = WEAR["P"], WEAR["t"], WEAR
+    S = lambda n: f'sample_path_axis({t}_{n}, axis: "z", at: k, interpolation: "pchip")'
+    L = []
+
+    def ring(n, e, up, um, vp, vm, pt, secs="secs", ind="    "):
+        return [ind + x for x in RING.format(secs=secs, n=n, e=e, up=up, um=um, vp=vp, vm=vm, pt=pt).split("\n")]
+
+    def tube(name, params, k, lets, **kw):
+        """A loft through `n` rings between two table stations, grown by `gap`."""
+        L.append(f"#meshpart {P}{name}")
+        L.extend(f"param {a} = {b};" for a, b in params)
+        L.extend(["var secs = [];", "for i 0..n {", f"    let k = {k};"] + ["    " + x for x in lets])
+        L.extend([x[4:] if False else x for x in RING.format(secs="secs", **kw).split("\n")])
+        L.extend(["}", 'out.geo = loft_quads(sections: secs, caps: "both", material: mat);', "#end"])
+
+    # ---- the skin: every limb lofted, fused into one surface, decimated, flat shaded
+    M = 'material: "TravelerSkin"'
+    L.append(f"#meshpart {P}Skin")
+
+    def loop(secs, lo, hi, count, lets, **kw):
+        L.append(f"var {secs} = [];")
+        L.append(f"for i 0..{count} {{")
+        L.append(f"    let k = {f(lo)} + {f(hi - lo)} * i / {count - 1};")
+        L.extend("    " + x for x in lets)
+        L.append(RING.format(secs=secs, **kw))
+        L.append("}")
+
+    loop("to_secs", TORSO[0][0], TORSO[-1][0], 24, [f"let a = {S('to_a')};", f"let b = {S('to_b')};"],
+         n=14, e="b.y", up="a.y", um="b.x", vp="a.x", vm="a.x", pt="(du, dv, k)")
+    loop("he_secs", HEAD[0][0], HEAD[-1][0], 10, [f"let a = {S('he_a')};", f"let b = {S('he_b')};"],
+         n=10, e="b.y", up="a.y", um="b.x", vp="a.x", vm="a.x", pt=f"({f(HEAD_CX)} + du, dv, k)")
+    loop("ar_secs", ARM[0][0], ARM[-1][0], 26, [f"let a = {S('ar_a')};", f"let b = {S('ar_b')};", f"let c3 = {S('ar_c')};"],
+         n=8, e="c3.x", up="a.x", um="a.y", vp="b.x", vm="b.y", pt=f"(du, {f(SHOULDER[1])} - k, {f(SHOULDER[2])} + dv)")
+    loop("le_secs", LEG[0][0], LEG[-1][0], 26, [f"let a = {S('le_a')};", f"let b = {S('le_b')};", f"let c3 = {S('le_c')};", f"let d = {S('le_d')};"],
+         n=8, e="d.x", up="c3.x", um="c3.y", vp="b.y", vm="b.x", pt="(a.x + du, a.y + dv, k)")
+    L += ["var fo_secs = [];", "for i 0..10 {", f"    let k = {f(FOOT[0][0])} + {f(FOOT[-1][0] - FOOT[0][0])} * i / 9;", f"    let a = {S('fo_a')};",
+          f"    let y = {f(FOOT_CY)};",
+          "    fo_secs = append(fo_secs, [(k, y - a.x, 0.3), (k, y - a.x * 0.6, 0), (k, y + a.x * 0.6, 0), (k, y + a.x, 0.3), (k, y + a.x, a.y * 0.6), (k, y + a.x * 0.55, a.y), (k, y - a.x * 0.55, a.y), (k, y - a.x, a.y * 0.6)]);",
+          "}"]
+    for nm, secs in (("torso", "to_secs"), ("head", "he_secs"), ("arm_r", "ar_secs"), ("leg_r", "le_secs"), ("foot_r", "fo_secs")):
+        L.append(f'let {nm} = loft_quads(sections: {secs}, caps: "both", {M});')
+    names = ["torso", "head"]
+    for i, (kind, c, r) in enumerate(LUMPS):
+        L.append(f'let lump{i} = center(scale(icosphere(radius: 10, subdivisions: 2, {M}), ({r[0] / 10:.2f}, {r[1] / 10:.2f}, {r[2] / 10:.2f})), at: ({f(c[0])}, {f(c[1])}, {f(c[2])}));')
+    (a, b, th) = THUMB
+    a, b = np.array(a), np.array(b)
+    mid, ln, yaw = (a + b) / 2, np.linalg.norm(b - a), np.degrees(np.arctan2(b[1] - a[1], b[0] - a[0]))
+    L.append(f'let thumb = center(rotate_z(quad_box(size: ({f(ln)}, {f(th)}, {f(th * 0.8)}), res: (2, 2, 2), {M}), degrees: {f(yaw)}), at: ({f(mid[0])}, {f(mid[1])}, {f(mid[2])}));')
+    c, sz = EAR
+    L.append(f'let ear = center(quad_box(size: ({f(sz[0])}, {f(sz[1])}, {f(sz[2])}), res: (2, 2, 2), {M}), at: ({f(c[0])}, {f(c[1])}, {f(c[2])}));')
+    for i, (sz, c) in enumerate(FACE):
+        L.append(f'let face{i} = center(quad_box(size: ({f(sz[0])}, {f(sz[1])}, {f(sz[2])}), res: (2, 2, 2), {M}), at: ({f(c[0])}, {f(c[1])}, {f(c[2])}));')
+        names.append(f"face{i}")
+    side = ["arm_r", "leg_r", "foot_r", "thumb", "ear"] + [f"lump{i}" for i in range(len(LUMPS))]
+    L.append(f"let right = merge({', '.join(side)});")
+    L.append(f"let raw = merge({', '.join(names)}, right, mirror(right, normal: (0, 1, 0)));")
+    L.append('out.geo = flat_shade(decimate(voxel_remesh(raw, voxel: 1.2, mode: "smooth"), verts: 1500));')
+    L.append("#end")
+
+    # ---- building blocks: one tube per limb, grown by `gap`
+    C = [("mat", '"TravWear"')]
+    tube("Torso", [("z0", f(W["crotch"])), ("z1", f(W["waist"])), ("gap", "1.5"), ("n", "7")] + C, "z0 + (z1 - z0) * i / (n - 1)",
+         [f"let a = {S('to_a')};", f"let b = {S('to_b')};"],
+         n=14, e="b.y", up="(a.y + gap)", um="(b.x + gap)", vp="(a.x + gap)", vm="(a.x + gap)", pt="(du, dv, k)")
+    tube("Leg", [("z0", f(W["trunks_hem"])), ("z1", f(LEG[-1][0])), ("gap", "1.5"), ("inner", "1.2"), ("n", "7")] + C, "z0 + (z1 - z0) * i / (n - 1)",
+         [f"let a = {S('le_a')};", f"let b = {S('le_b')};", f"let c3 = {S('le_c')};", f"let d = {S('le_d')};"],
+         n=8, e="d.x", up="(c3.x + gap)", um="(c3.y + gap)", vp="(b.y + gap + inner)", vm="(b.x + gap)", pt="(a.x + du, a.y + dv, k)")
+    tube("Arm", [("d0", "-5"), ("d1", f(W["sleeve_long"])), ("gap", "2.3"), ("n", "12")] + C, "d0 + (d1 - d0) * i / (n - 1)",
+         [f"let a = {S('ar_a')};", f"let b = {S('ar_b')};", f"let c3 = {S('ar_c')};"],
+         n=8, e="c3.x", up="(a.x + gap)", um="(a.y + gap)", vp="(b.x + gap)", vm="(b.y + gap)", pt=f"(du, {f(SHOULDER[1])} - k, {f(SHOULDER[2])} + dv)")
+    x0, x1 = FOOT[0][0], FOOT[-1][0]
+    L += [f"#meshpart {P}Foot", "param gap = 1.6;", 'param mat = "TravWear";', "var secs = [];", "for i 0..10 {",
+          f"    let k = {f(x0)} + {f(x1 - x0)} * i / 9;", f"    let a = {S('fo_a')};",
+          f"    let x = {f((x0 + x1) / 2)} + (k - {f((x0 + x1) / 2)}) * (1 + 2 * gap / {f(x1 - x0)});",
+          f"    let y = {f(FOOT_CY)};", "    let w = a.x + gap;", "    let h = a.y + gap;",
+          "    secs = append(secs, [(x, y - w, 0.3), (x, y - w * 0.6, 0), (x, y + w * 0.6, 0), (x, y + w, 0.3), (x, y + w, h * 0.6), (x, y + w * 0.55, h), (x, y - w * 0.55, h), (x, y - w, h * 0.6)]);",
+          "}", 'out.geo = loft_quads(sections: secs, caps: "both", material: mat);', "#end"]
+    for i, (kind, c, r) in enumerate(LUMPS):
+        L += [f"#meshpart {P}Lump{i}", "param gap = 1.5;", 'param mat = "TravWear";',
+              f"out.geo = center(scale(icosphere(radius: 10, subdivisions: 2, material: mat), (({f(r[0])} + gap) / 10, ({f(r[1])} + gap) / 10, ({f(r[2])} + gap) / 10)), at: ({f(c[0])}, {f(c[1])}, {f(c[2])}));",
+              "#end"]
+
+    FUSE = lambda src, verts: f'flat_shade(decimate(voxel_remesh({src}, voxel: 1.2, mode: "smooth"), verts: {verts}))'
+    MIR = lambda v: f"mirror({v}, normal: (0, 1, 0))"
+    gc, gr = W["gusset"]
+    lump = W["chest_lump"]
+
+    # ---- garments
+    L += [f"#meshpart {P}Hair", 'param mat = "TravWear";', "var secs = [];", f"for i 0..{HAIR_RINGS} {{",
+          f"    let k = {f(HAIR[0][0])} + {f(HAIR[-1][0] - HAIR[0][0])} * i / {HAIR_RINGS - 1};",
+          f"    let a = {S('ha_a')};", f"    let b = {S('ha_b')};"]
+    L += RING.format(secs="secs", n=10, e="2.3", up="b.x", um="b.y", vp="a.y", vm="a.y", pt="(a.x + du, dv, k)").split("\n")
+    L += ["}", 'out.geo = flat_shade(loft_quads(sections: secs, caps: "both", material: mat));', "#end"]
+
+    # trousers: hip tube + leg tube + seat + gusset. hem picks the length (trunks, knee breeches, ankle).
+    L += [f"#meshpart {P}Trousers", 'param mat = "TravWear";', f"param hem = {f(W['ankle_hem'])};", "param n = 14;", "param verts = 520;",
+          f"let hips = part({P}Torso, z0: {f(W['crotch'])}, z1: {f(W['waist'])}, gap: {LAYER['pants']}, mat: mat);",
+          f"let side = merge(part({P}Leg, z0: hem, z1: {f(LEG[-1][0])}, gap: {LAYER['pants']}, n: n, mat: mat), part({P}Lump0, gap: {LAYER['pants']}, mat: mat));",
+          f"let gusset = center(scale(icosphere(radius: 10, subdivisions: 2, material: mat), ({gr[0] / 10:.2f}, {gr[1] / 10:.2f}, {gr[2] / 10:.2f})), at: ({f(gc[0])}, {f(gc[1])}, {f(gc[2])}));",
+          f"out.geo = {FUSE(f'merge(hips, gusset, side, {MIR(chr(115) + chr(105) + chr(100) + chr(101))})', 'verts')};", "#end"]
+    # shirt: torso tube to the collar + sleeves (sleeve = how far down the arm)
+    chest = f", part({P}Lump{lump}, gap: {f(LAYER['shirt'] + BUST)}, mat: mat)" if lump is not None else ""
+    L += [f"#meshpart {P}Shirt", 'param mat = "TravWear";', f"param sleeve = {f(W['sleeve_long'])};",
+          f"let trunk = part({P}Torso, z0: {f(W['shirt_hem'])}, z1: {f(W['neck'])}, gap: {LAYER['shirt']}, n: 12, mat: mat);",
+          f"let side = merge(part({P}Arm, d1: sleeve, gap: {LAYER['shirt']}, mat: mat){chest});" if lump is not None else
+          f"let side = part({P}Arm, d1: sleeve, gap: {LAYER['shirt']}, mat: mat);",
+          f"out.geo = {FUSE(f'merge(trunk, side, {MIR(chr(115) + chr(105) + chr(100) + chr(101))})', 640 if lump is None else 760)};", "#end"]
+    # vest / bodice: a sleeveless tube worn over the shirt
+    v0, v1 = W["vest"]
+    vest_src = f"part({P}Torso, z0: {f(v0)}, z1: {f(v1)}, gap: {LAYER['vest']}, n: 10, mat: mat)"
+    if lump is not None:
+        L += [f"#meshpart {P}Vest", 'param mat = "TravWear";', f"let bust = part({P}Lump{lump}, gap: {f(LAYER['vest'] + BUST)}, mat: mat);",
+              f"out.geo = {FUSE(f'merge({vest_src}, bust, {MIR(chr(98) + chr(117) + chr(115) + chr(116))})', 380)};", "#end"]
+    else:
+        L += [f"#meshpart {P}Vest", 'param mat = "TravWear";', f"out.geo = {FUSE(vest_src, 360)};", "#end"]
+    # boots: sole + shaft over the trouser hem, one side fused then mirrored (top = shaft height: boots or low shoes)
+    L += [f"#meshpart {P}Boots", 'param mat = "TravWear";', f"param top = {f(W['boot_top'])};", "param n = 6;", "param verts = 170;",
+          f"let boot = decimate(voxel_remesh(merge(part({P}Foot, gap: {LAYER['sole']}, mat: mat), part({P}Leg, z0: {f(LEG[0][0])}, z1: top, gap: {LAYER['boot']}, inner: 0, n: n, mat: mat)), voxel: 1.2, mode: \"smooth\"), verts: verts);",
+          f"out.geo = flat_shade(merge(boot, {MIR('boot')}));", "#end"]
+    for g in GARMENTS:
+        if g["leg"] is None:
+            # underwear band (her bandeau): a short torso tube + the bust, at the underwear gap
+            i = g["lumps"][0]
+            L += [f"#meshpart {P}Band", 'param mat = "TravelerCloth";', f"let bust = part({P}Lump{i}, gap: {f(GAP)}, mat: mat);",
+                  f"out.geo = {FUSE(f'merge(part({P}Torso, z0: {f(g['torso'][0])}, z1: {f(g['torso'][1])}, gap: {f(GAP)}, n: 7, mat: mat), bust, {MIR(chr(98) + chr(117) + chr(115) + chr(116))})', g['verts'])};", "#end"]
+    if SKIRT:
+        # 15 rings (3.5 cm apart) so the waist can follow the body's own weights; squarer than the hips it has to clear
+        L += [f"#meshpart {P}SkirtPart", 'param mat = "TravWear";', "var secs = [];", "for i 0..15 {",
+              f"    let k = {f(SKIRT[0][0])} + {f(SKIRT[-1][0] - SKIRT[0][0])} * i / 14;",
+              f"    let a = {S('sk_a')};", f"    let b = {S('sk_b')};"]
+        L += RING.format(secs="secs", n=16, e="2.6", up="a.y", um="b.x", vp="a.x", vm="a.x", pt="(du, dv, k)").split("\n")
+        L += ["}", 'out.geo = flat_shade(loft_quads(sections: secs, caps: "both", material: mat));', "#end"]
+    return L
+
+
+def pieces():
+    """Wearable pieces of the current variant: (mesh name, garment expression, how it is skinned).
+    copy = weights copied from the skin under it, head = rigid on the head, own = its own regions (skirt)."""
+    P, W, S, M = WEAR["P"], WEAR, "Trav" + WEAR["P"][-1], 'mat: "TravWear"'
+    out = [("Hair", f"part({P}Hair, {M})", "head"),
+           ("Shirt", f"part({P}Shirt, {M})", "copy"),
+           ("Tee", f"part({P}Shirt, {M}, sleeve: {f(W['sleeve_short'])})", "copy"),
+           ("Vest", f"part({P}Vest, {M})", "copy"),
+           ("Trousers", f"part({P}Trousers, {M})", "copy"),
+           ("Breeches", f"part({P}Trousers, {M}, hem: {f(W['knee_hem'])}, n: 9, verts: 460)", "copy"),
+           ("Boots", f"part({P}Boots, {M})", "copy"),
+           ("Shoes", f"part({P}Boots, {M}, top: {f(W['shoe_top'])}, n: 4, verts: 120)", "copy")]
+    if SKIRT:
+        out.append(("Skirt", f"part({P}SkirtPart, {M})", "own"))
+    # underwear: the trouser part cut at the trunk hem; worn whenever nothing covers it (see ShowWorn in the world)
+    out.append(("Under", f'part({P}Trousers, mat: "TravelerCloth", hem: {f(W["trunks_hem"])}, n: 7, verts: 420)', "copy"))
+    if any(g["leg"] is None for g in GARMENTS):
+        out.append(("Band", f'part({P}Band, mat: "TravelerCloth")', "copy"))
+    return [(S + n, e, k) for n, e, k in out]
+
+
+def piece(name, expr, skin, textures=()):
+    ALL = f"min: (-{B}, -{B}, -{B}), max: ({B}, {B}, {B})"
+    L = [f"#mesh {name}"] + [f"#texture {n} color={c} roughness=0.9" for n, c in textures]
+    L += ["// Wearable piece: garment only, rigged like the body so it plays the same clips; tinted per object with SetColor.",
+          "budget(verts: 60000, indices: 240000);",
+          # one reference box for every piece: a slot object can swap its model (SetModel) without being rescaled
+          "sim_box(min: (-45, -100, 0), max: (45, 100, 190));"]
+    if skin == "copy":
+        L += [f"let body = part({WEAR['P']}Skin);", f"let wear = {expr};"]
+        prev = rig(L, sockets=False)
+        L.append(f"out.geo = transfer_weights(wear, source: {prev}, selection: select_verts(wear, {ALL}), max_distance: 20);")
+    elif skin == "head":
+        L.append(f"let wear = {expr};")
+        rig(L, sockets=False, skin=False)
+        L.append(f'out.geo = skin_weights(wear, selection: select_verts(wear, {ALL}), bones: "Head", weights: [1]);')
+    else:
+        # loose cloth: above the hips it copies the body (so it moves exactly like a shirt tucked into it);
+        # below, nothing sits under it - the cloth hangs from Root and each side mostly follows its thigh
+        K, SOFT = SKIN, 'falloff: "smooth", distance: "surface"'
+        L += [f"let body = part({WEAR['P']}Skin);", f"let wear = {expr};"]
+        prev = rig(L, sockets=False)
+        L += [f"let worn = transfer_weights(wear, source: {prev}, selection: select_verts(wear, {ALL}), max_distance: 20);",
+              f'let k0 = skin_weights(worn, selection: select_verts(worn, min: (-{B}, -{B}, -{B}), max: ({B}, {B}, {f(K["thigh"] + 1)})), bones: "Root", weights: [1]);',
+              f'let v1 = soft_selection(k0, selection: select_verts(k0, min: (-{B}, -{B}, -{B}), max: ({B}, -0.1, {f(K["thigh"])})), radius: 6, {SOFT}, pins: select_verts(k0, min: (-{B}, 0.1, -{B}), max: ({B}, {B}, {B})));',
+              'let k1 = skin_weights(k0, selection: v1, bones: "ThighR Root", weights: [0.8, 0.2]);',
+              f'let v2 = soft_selection(k1, selection: select_verts(k1, min: (-{B}, 0.1, -{B}), max: ({B}, {B}, {f(K["thigh"])})), radius: 6, {SOFT}, pins: select_verts(k1, min: (-{B}, -{B}, -{B}), max: ({B}, -0.1, {B})));',
+              'let k2 = skin_weights(k1, selection: v2, bones: "ThighL Root", weights: [0.8, 0.2]);',
+              "out.geo = k2;"]
+    return L + ["#end"]
+
+
+ACCESSORIES = """#mesh TravelerStrawHat
+// A straw hat for the Hat socket (centre-to-centre: the brim sits 5 cm under the socket).
+var brim = [];
+for i 0..2 {
+    var ring = [];
+    for j 0..14 { ring = append(ring, (cos(360 * j / 14) * 21, sin(360 * j / 14) * 19.5, i * 0.9)); }
+    brim = append(brim, ring);
+}
+var crown = [];
+for p in [(11, 9.8, 0.9), (10.6, 9.4, 6), (9, 8, 9.4), (4, 3.6, 10.6)] {
+    var ring = [];
+    for j 0..12 { ring = append(ring, (cos(360 * j / 12) * p.x, sin(360 * j / 12) * p.y, p.z)); }
+    crown = append(crown, ring);
+}
+var band = [];
+for p in [(11.5, 10.3, 1), (11.3, 10.1, 3.4)] {
+    var ring = [];
+    for j 0..12 { ring = append(ring, (cos(360 * j / 12) * p.x, sin(360 * j / 12) * p.y, p.z)); }
+    band = append(band, ring);
+}
+out.geo = flat_shade(merge(loft_quads(sections: brim, caps: "both", material: "TravStraw"), loft_quads(sections: crown, caps: "both", material: "TravStraw"), loft_quads(sections: band, caps: "both", material: "TravIndigo")));
+#end
+
+#mesh TravelerPack
+// A courier's pack for the Back socket: bag, flap, side pocket and a bedroll on top. Faces +X like the body.
+let bag = center(quad_box(size: (13, 25, 30), res: (2, 2, 2), material: "TravTan"), at: (0, 0, 0));
+let flap = center(quad_box(size: (14.4, 26, 10), res: (2, 2, 2), material: "TravLeather"), at: (-0.4, 0, 11));
+let pocket = center(quad_box(size: (5, 16, 12), res: (2, 2, 2), material: "TravLeather"), at: (-8, 0, -6));
+var roll = [];
+for i 0..2 {
+    var ring = [];
+    for j 0..10 { ring = append(ring, (cos(360 * j / 10) * 5.5, -15 + 30 * i, 20.5 + sin(360 * j / 10) * 5.5)); }
+    roll = append(roll, ring);
+}
+out.geo = flat_shade(merge(bag, flap, pocket, loft_quads(sections: roll, caps: "both", material: "TravCream")));
+#end
+"""
+
+
+def wardrobe(path):
+    D, PT, O = ["#meshdefs", "// Traveler anatomy tables (generated by oriverse/models/traveler_body.py): tm_ = male, tf_ = female."], [], []
+    tex = TEXTURES
+    for v in ("male", "female"):
+        select(v)
+        D += defs(WEAR["t"])
+        PT += parts()
+        for name, expr, skin in pieces():
+            O += piece(name, expr, skin, tex) + [""]
+            tex = ()
+    select("male")
+    D.append("#end")
+    text = "\n".join(D) + "\n\n" + "\n".join(PT) + "\n\n" + "\n".join(O) + ACCESSORIES
+    open(path, "w").write(text)
+    print("saved", path, len(text), "chars", text.count("\n"), "lines")
+
+
 if __name__ == "__main__":
     args = [a for a in sys.argv[3:] if not a.startswith("--")]
     select(args[0] if args else "male")
     if sys.argv[1] == "render":
         sheet(sys.argv[2])
+    elif sys.argv[1] == "wardrobe":
+        wardrobe(sys.argv[2])
     else:
-        weave(sys.argv[2], textures="--no-textures" not in sys.argv)
+        weave(sys.argv[2], textures="--no-textures" not in sys.argv, dressed="--dressed" in sys.argv)
