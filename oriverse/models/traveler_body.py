@@ -830,7 +830,42 @@ def pieces():
     out.append(("Under", f'part({P}Trousers, mat: "TravelerCloth", hem: {f(W["trunks_hem"])}, n: 7, verts: 420)', "copy"))
     if any(g["leg"] is None for g in GARMENTS):
         out.append(("Band", f'part({P}Band, mat: "TravelerCloth")', "copy"))
+    out += [("Skin" + n, sel, "cut" if n != "Core" else "cut+sockets") for n, sel in skin_regions()]
     return [(S + n, e, k) for n, e, k in out]
+
+
+CUT = 4.5      # a cut sits this far inside the garment that hides one side of it (a skin face is about 4 cm tall)
+
+
+def skin_regions():
+    """The drawn skin, cut into the regions clothes can hide: (name, face selection on `body`).
+    Skin under a garment is not drawn at all, so it can never poke through; the world hides a region when a
+    piece covers it (ShowWorn). Each cut lies CUT cm inside the covering garment's edge and the faces crossing
+    it go to the hidden side, so the visible side ends under cloth. The pelvis is in no region: underwear or
+    trousers always cover it. A body with a skirt gets its thigh cut twice: the skirt hides the thigh above
+    its hem (a lifted thigh would push through the loose cloth), the knee under the hem stays drawn."""
+    W, K = WEAR, SKIN
+    box = lambda lo, hi: f"select_faces(body, min: ({f(lo[0])}, {f(lo[1])}, {f(lo[2])}), max: ({f(hi[0])}, {f(hi[1])}, {f(hi[2])}))"
+    above = lambda z: box((-B, -B, z), (B, B, B))
+    below = lambda z: box((-B, -B, -B), (B, B, z))
+    AND, OR, NOT = "selection_intersection({}, {})".format, "selection_union({}, {})".format, "selection_difference({}, {})".format
+    z_foot, z_knee, z_pelvis = W["shoe_top"] - 4, W["knee_hem"] + CUT, W["trunks_hem"] + CUT
+    z_waist, z_neck, y_neck = W["waist"] - CUT, W["neck"] - CUT, K["neck_w"] + 2
+    y_hand, y_arm = -SHOULDER[1] + W["sleeve_long"] - CUT, -SHOULDER[1] + W["sleeve_short"] - CUT
+    hands = OR(box((-B, -B, -B), (B, -y_hand, B)), box((-B, y_hand, -B), (B, B, B)))
+    arm_out = OR(box((-B, -B, -B), (B, -y_arm, B)), box((-B, y_arm, -B), (B, B, B)))
+    head = box((-B, -y_neck, z_neck), (B, y_neck, B))
+    thighs = [("Thighs", AND(NOT(above(z_foot), below(z_knee)), below(z_pelvis)))]         # hidden by trousers and breeches
+    if SKIRT:
+        z_skirt = SKIRT[0][0] + CUT
+        thighs = [("Thighs", AND(NOT(above(z_foot), below(z_skirt)), below(z_pelvis))),    # ... and by the skirt
+                  ("Knees", AND(NOT(above(z_foot), below(z_knee)), below(z_skirt)))]       # hidden by trousers and breeches
+    return [("Core", OR(head, hands)),                                   # head, neck and hands: always drawn
+            ("Torso", NOT(NOT(above(z_waist), arm_out), head)),          # hidden by a shirt or tee
+            ("Arms", NOT(arm_out, hands)),                               # beyond a tee's sleeve: hidden by a shirt
+            *thighs,
+            ("Shins", AND(above(z_foot), below(z_knee))),                # hidden by trousers
+            ("Feet", f"select_faces(body, min: (-{B}, -{B}, {f(z_foot)}), max: ({B}, {B}, {B}), invert: \"yes\")")]   # hidden by boots and shoes
 
 
 def piece(name, expr, skin, textures=()):
@@ -844,6 +879,13 @@ def piece(name, expr, skin, textures=()):
         L += [f"let body = part({WEAR['P']}Skin);", f"let wear = {expr};"]
         prev = rig(L, sockets=False)
         L.append(f"out.geo = transfer_weights(wear, source: {prev}, selection: select_verts(wear, {ALL}), max_distance: 20);")
+    elif skin.startswith("cut"):
+        # a region of the skin itself: the body's own faces and weights (the core carries the sockets)
+        L[1 + len(textures)] = "// Skin region: the part of the body a garment can hide (see skin_regions in the generator)."
+        L.append(f"let body = part({WEAR['P']}Skin);")
+        prev = rig(L, sockets=skin.endswith("sockets"))
+        L += [f"let cut = separate(body, selection: {expr});",
+              f"out.geo = transfer_weights(cut, source: {prev}, selection: select_verts(cut, {ALL}), max_distance: 2);"]
     elif skin == "head":
         L.append(f"let wear = {expr};")
         rig(L, sockets=False, skin=False)
@@ -864,7 +906,19 @@ def piece(name, expr, skin, textures=()):
     return L + ["#end"]
 
 
-ACCESSORIES = """#mesh TravelerStrawHat
+ACCESSORIES = """#mesh TravelerAnchor
+// The player's own model: nothing to look at (the player is never drawn), only the socket everything worn
+// hangs on. The socket is pinned to a bone that no clip moves: a pinned socket carries its children with the
+// player's drawn position every frame, an un-pinned one with the simulated position, a tick behind, and the
+// whole figure then judders against the camera like a double image.
+sim_box(min: (-20, -20, 0), max: (20, 20, 180));
+bone("Anchor", pos: (0, 0, 0));
+socket("Fit", at: (0, 0, 0), axis: (0, 0, 1), bone: "Anchor");
+let dot = center(quad_box(size: (1, 1, 1), res: (2, 2, 2), material: "TravelerSkin"), at: (0, 0, 90));
+out.geo = skin_weights(dot, selection: select_verts(dot, min: (-400, -400, -400), max: (400, 400, 400)), bones: "Anchor", weights: [1]);
+#end
+
+#mesh TravelerStrawHat
 // A straw hat for the Hat socket (centre-to-centre: the brim sits 5 cm under the socket).
 var brim = [];
 for i 0..2 {

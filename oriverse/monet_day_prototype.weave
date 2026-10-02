@@ -2669,6 +2669,426 @@ let s17 = skin_weights(s16, selection: w17, bones: "ToeL", weights: [1]);
 out.geo = transfer_weights(wear, source: s17, selection: select_verts(wear, min: (-400, -400, -400), max: (400, 400, 400)), max_distance: 20);
 #end
 
+#mesh TravMSkinCore
+// Skin region: the part of the body a garment can hide (see skin_regions in the generator).
+budget(verts: 60000, indices: 240000);
+sim_box(min: (-45, -100, 0), max: (45, 100, 190));
+let body = part(TravelerMSkin);
+bone("Root", pos: (0, 0, 96));
+bone("Spine", pos: (0, 0, 104), parent: "Root");
+bone("Torso", pos: (0, 0, 118), parent: "Spine");
+bone("Neck", pos: (0, 0, 151), parent: "Torso");
+bone("Head", pos: (0, 0, 157.5), parent: "Neck");
+bone("ScapulaR", pos: (0, -7, 148), parent: "Torso");
+bone("UpperArmR", pos: (0, -19, 145), parent: "ScapulaR");
+bone("ForearmR", pos: (0, -47, 145), parent: "UpperArmR");
+bone("HandR", pos: (0, -72, 145), parent: "ForearmR");
+bone("ScapulaL", pos: (0, 7, 148), parent: "Torso");
+bone("UpperArmL", pos: (0, 19, 145), parent: "ScapulaL");
+bone("ForearmL", pos: (0, 47, 145), parent: "UpperArmL");
+bone("HandL", pos: (0, 72, 145), parent: "ForearmL");
+bone("ThighR", pos: (0, -9.6, 92), parent: "Root");
+bone("ShinR", pos: (2.2, -10.6, 50), parent: "ThighR");
+bone("FootR", pos: (0.8, -11.4, 10), parent: "ShinR");
+bone("ToeR", pos: (13, -11.5, 2), parent: "FootR");
+bone("ThighL", pos: (0, 9.6, 92), parent: "Root");
+bone("ShinL", pos: (2.2, 10.6, 50), parent: "ThighL");
+bone("FootL", pos: (0.8, 11.4, 10), parent: "ShinL");
+bone("ToeL", pos: (13, 11.5, 2), parent: "FootL");
+socket("Hat", at: (1, 0, 178), axis: (0, 0, 1), bone: "Head");
+socket("Face", at: (11, 0, 169), axis: (1, 0, 0), bone: "Head");
+socket("Chest", at: (12.5, 0, 134), axis: (1, 0, 0), bone: "Torso");
+socket("Back", at: (-21, 0, 128), axis: (0, 0, 1), bone: "Torso");
+socket("BeltFront", at: (10, 0, 103), axis: (1, 0, 0), bone: "Root");
+socket("BeltBack", at: (-10, 0, 103), axis: (-1, 0, 0), bone: "Root");
+socket("HipR", at: (0, -17.5, 97), axis: (0, -1, 0), bone: "Root");
+socket("HipL", at: (0, 17.5, 97), axis: (0, 1, 0), bone: "Root");
+socket("ShoulderR", at: (0, -19, 150), axis: (0, 0, 1), bone: "ScapulaR");
+socket("ShoulderL", at: (0, 19, 150), axis: (0, 0, 1), bone: "ScapulaL");
+socket("HoldR", at: (0, -80, 143), axis: (1, 0, 0), bone: "HandR");
+socket("HoldL", at: (0, 80, 143), axis: (1, 0, 0), bone: "HandL");
+socket("Fit", at: (0, 0, 0), axis: (0, 0, 1));
+let rooted = skin_weights(body, selection: select_verts(body, min: (-400, -400, -400), max: (400, 400, 400)), bones: "Root", weights: [1]);
+let w0 = soft_selection(rooted, selection: select_verts(rooted, min: (-400, -400, 101), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s0 = skin_weights(rooted, selection: w0, bones: "Spine", weights: [1]);
+let w1 = soft_selection(s0, selection: select_verts(s0, min: (-400, -400, 114), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s1 = skin_weights(s0, selection: w1, bones: "Torso", weights: [1]);
+let w2 = soft_selection(s1, selection: select_verts(s1, min: (-400, -12, 152), max: (400, 12, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s2 = skin_weights(s1, selection: w2, bones: "Neck", weights: [1]);
+let w3 = soft_selection(s2, selection: select_verts(s2, min: (-400, -400, 158), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s3 = skin_weights(s2, selection: w3, bones: "Head", weights: [1]);
+let w4 = soft_selection(s3, selection: select_verts(s3, min: (-400, -400, 120), max: (400, -22, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s4 = skin_weights(s3, selection: w4, bones: "UpperArmR", weights: [1]);
+let w5 = soft_selection(s4, selection: select_verts(s4, min: (-400, -400, 120), max: (400, -49, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s5 = skin_weights(s4, selection: w5, bones: "ForearmR", weights: [1]);
+let w6 = soft_selection(s5, selection: select_verts(s5, min: (-400, -400, 120), max: (400, -73.5, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s6 = skin_weights(s5, selection: w6, bones: "HandR", weights: [1]);
+let w7 = soft_selection(s6, selection: select_verts(s6, min: (-400, -400, -400), max: (400, -0.1, 86)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s6, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s7 = skin_weights(s6, selection: w7, bones: "ThighR", weights: [1]);
+let w8 = soft_selection(s7, selection: select_verts(s7, min: (-400, -400, -400), max: (400, -0.1, 48)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s7, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s8 = skin_weights(s7, selection: w8, bones: "ShinR", weights: [1]);
+let w9 = soft_selection(s8, selection: select_verts(s8, min: (-400, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s8, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s9 = skin_weights(s8, selection: w9, bones: "FootR", weights: [1]);
+let w10 = soft_selection(s9, selection: select_verts(s9, min: (12, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s9, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s10 = skin_weights(s9, selection: w10, bones: "ToeR", weights: [1]);
+let w11 = soft_selection(s10, selection: select_verts(s10, min: (-400, 22, 120), max: (400, 400, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s11 = skin_weights(s10, selection: w11, bones: "UpperArmL", weights: [1]);
+let w12 = soft_selection(s11, selection: select_verts(s11, min: (-400, 49, 120), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s12 = skin_weights(s11, selection: w12, bones: "ForearmL", weights: [1]);
+let w13 = soft_selection(s12, selection: select_verts(s12, min: (-400, 73.5, 120), max: (400, 400, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s13 = skin_weights(s12, selection: w13, bones: "HandL", weights: [1]);
+let w14 = soft_selection(s13, selection: select_verts(s13, min: (-400, 0.1, -400), max: (400, 400, 86)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s13, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s14 = skin_weights(s13, selection: w14, bones: "ThighL", weights: [1]);
+let w15 = soft_selection(s14, selection: select_verts(s14, min: (-400, 0.1, -400), max: (400, 400, 48)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s14, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s15 = skin_weights(s14, selection: w15, bones: "ShinL", weights: [1]);
+let w16 = soft_selection(s15, selection: select_verts(s15, min: (-400, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s15, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s16 = skin_weights(s15, selection: w16, bones: "FootL", weights: [1]);
+let w17 = soft_selection(s16, selection: select_verts(s16, min: (12, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s16, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s17 = skin_weights(s16, selection: w17, bones: "ToeL", weights: [1]);
+let cut = separate(body, selection: selection_union(select_faces(body, min: (-400, -14, 147.5), max: (400, 14, 400)), selection_union(select_faces(body, min: (-400, -400, -400), max: (400, -65.5, 400)), select_faces(body, min: (-400, 65.5, -400), max: (400, 400, 400)))));
+out.geo = transfer_weights(cut, source: s17, selection: select_verts(cut, min: (-400, -400, -400), max: (400, 400, 400)), max_distance: 2);
+#end
+
+#mesh TravMSkinTorso
+// Skin region: the part of the body a garment can hide (see skin_regions in the generator).
+budget(verts: 60000, indices: 240000);
+sim_box(min: (-45, -100, 0), max: (45, 100, 190));
+let body = part(TravelerMSkin);
+bone("Root", pos: (0, 0, 96));
+bone("Spine", pos: (0, 0, 104), parent: "Root");
+bone("Torso", pos: (0, 0, 118), parent: "Spine");
+bone("Neck", pos: (0, 0, 151), parent: "Torso");
+bone("Head", pos: (0, 0, 157.5), parent: "Neck");
+bone("ScapulaR", pos: (0, -7, 148), parent: "Torso");
+bone("UpperArmR", pos: (0, -19, 145), parent: "ScapulaR");
+bone("ForearmR", pos: (0, -47, 145), parent: "UpperArmR");
+bone("HandR", pos: (0, -72, 145), parent: "ForearmR");
+bone("ScapulaL", pos: (0, 7, 148), parent: "Torso");
+bone("UpperArmL", pos: (0, 19, 145), parent: "ScapulaL");
+bone("ForearmL", pos: (0, 47, 145), parent: "UpperArmL");
+bone("HandL", pos: (0, 72, 145), parent: "ForearmL");
+bone("ThighR", pos: (0, -9.6, 92), parent: "Root");
+bone("ShinR", pos: (2.2, -10.6, 50), parent: "ThighR");
+bone("FootR", pos: (0.8, -11.4, 10), parent: "ShinR");
+bone("ToeR", pos: (13, -11.5, 2), parent: "FootR");
+bone("ThighL", pos: (0, 9.6, 92), parent: "Root");
+bone("ShinL", pos: (2.2, 10.6, 50), parent: "ThighL");
+bone("FootL", pos: (0.8, 11.4, 10), parent: "ShinL");
+bone("ToeL", pos: (13, 11.5, 2), parent: "FootL");
+socket("Fit", at: (0, 0, 0), axis: (0, 0, 1));
+let rooted = skin_weights(body, selection: select_verts(body, min: (-400, -400, -400), max: (400, 400, 400)), bones: "Root", weights: [1]);
+let w0 = soft_selection(rooted, selection: select_verts(rooted, min: (-400, -400, 101), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s0 = skin_weights(rooted, selection: w0, bones: "Spine", weights: [1]);
+let w1 = soft_selection(s0, selection: select_verts(s0, min: (-400, -400, 114), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s1 = skin_weights(s0, selection: w1, bones: "Torso", weights: [1]);
+let w2 = soft_selection(s1, selection: select_verts(s1, min: (-400, -12, 152), max: (400, 12, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s2 = skin_weights(s1, selection: w2, bones: "Neck", weights: [1]);
+let w3 = soft_selection(s2, selection: select_verts(s2, min: (-400, -400, 158), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s3 = skin_weights(s2, selection: w3, bones: "Head", weights: [1]);
+let w4 = soft_selection(s3, selection: select_verts(s3, min: (-400, -400, 120), max: (400, -22, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s4 = skin_weights(s3, selection: w4, bones: "UpperArmR", weights: [1]);
+let w5 = soft_selection(s4, selection: select_verts(s4, min: (-400, -400, 120), max: (400, -49, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s5 = skin_weights(s4, selection: w5, bones: "ForearmR", weights: [1]);
+let w6 = soft_selection(s5, selection: select_verts(s5, min: (-400, -400, 120), max: (400, -73.5, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s6 = skin_weights(s5, selection: w6, bones: "HandR", weights: [1]);
+let w7 = soft_selection(s6, selection: select_verts(s6, min: (-400, -400, -400), max: (400, -0.1, 86)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s6, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s7 = skin_weights(s6, selection: w7, bones: "ThighR", weights: [1]);
+let w8 = soft_selection(s7, selection: select_verts(s7, min: (-400, -400, -400), max: (400, -0.1, 48)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s7, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s8 = skin_weights(s7, selection: w8, bones: "ShinR", weights: [1]);
+let w9 = soft_selection(s8, selection: select_verts(s8, min: (-400, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s8, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s9 = skin_weights(s8, selection: w9, bones: "FootR", weights: [1]);
+let w10 = soft_selection(s9, selection: select_verts(s9, min: (12, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s9, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s10 = skin_weights(s9, selection: w10, bones: "ToeR", weights: [1]);
+let w11 = soft_selection(s10, selection: select_verts(s10, min: (-400, 22, 120), max: (400, 400, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s11 = skin_weights(s10, selection: w11, bones: "UpperArmL", weights: [1]);
+let w12 = soft_selection(s11, selection: select_verts(s11, min: (-400, 49, 120), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s12 = skin_weights(s11, selection: w12, bones: "ForearmL", weights: [1]);
+let w13 = soft_selection(s12, selection: select_verts(s12, min: (-400, 73.5, 120), max: (400, 400, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s13 = skin_weights(s12, selection: w13, bones: "HandL", weights: [1]);
+let w14 = soft_selection(s13, selection: select_verts(s13, min: (-400, 0.1, -400), max: (400, 400, 86)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s13, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s14 = skin_weights(s13, selection: w14, bones: "ThighL", weights: [1]);
+let w15 = soft_selection(s14, selection: select_verts(s14, min: (-400, 0.1, -400), max: (400, 400, 48)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s14, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s15 = skin_weights(s14, selection: w15, bones: "ShinL", weights: [1]);
+let w16 = soft_selection(s15, selection: select_verts(s15, min: (-400, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s15, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s16 = skin_weights(s15, selection: w16, bones: "FootL", weights: [1]);
+let w17 = soft_selection(s16, selection: select_verts(s16, min: (12, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s16, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s17 = skin_weights(s16, selection: w17, bones: "ToeL", weights: [1]);
+let cut = separate(body, selection: selection_difference(selection_difference(select_faces(body, min: (-400, -400, 98.5), max: (400, 400, 400)), selection_union(select_faces(body, min: (-400, -400, -400), max: (400, -36.5, 400)), select_faces(body, min: (-400, 36.5, -400), max: (400, 400, 400)))), select_faces(body, min: (-400, -14, 147.5), max: (400, 14, 400))));
+out.geo = transfer_weights(cut, source: s17, selection: select_verts(cut, min: (-400, -400, -400), max: (400, 400, 400)), max_distance: 2);
+#end
+
+#mesh TravMSkinArms
+// Skin region: the part of the body a garment can hide (see skin_regions in the generator).
+budget(verts: 60000, indices: 240000);
+sim_box(min: (-45, -100, 0), max: (45, 100, 190));
+let body = part(TravelerMSkin);
+bone("Root", pos: (0, 0, 96));
+bone("Spine", pos: (0, 0, 104), parent: "Root");
+bone("Torso", pos: (0, 0, 118), parent: "Spine");
+bone("Neck", pos: (0, 0, 151), parent: "Torso");
+bone("Head", pos: (0, 0, 157.5), parent: "Neck");
+bone("ScapulaR", pos: (0, -7, 148), parent: "Torso");
+bone("UpperArmR", pos: (0, -19, 145), parent: "ScapulaR");
+bone("ForearmR", pos: (0, -47, 145), parent: "UpperArmR");
+bone("HandR", pos: (0, -72, 145), parent: "ForearmR");
+bone("ScapulaL", pos: (0, 7, 148), parent: "Torso");
+bone("UpperArmL", pos: (0, 19, 145), parent: "ScapulaL");
+bone("ForearmL", pos: (0, 47, 145), parent: "UpperArmL");
+bone("HandL", pos: (0, 72, 145), parent: "ForearmL");
+bone("ThighR", pos: (0, -9.6, 92), parent: "Root");
+bone("ShinR", pos: (2.2, -10.6, 50), parent: "ThighR");
+bone("FootR", pos: (0.8, -11.4, 10), parent: "ShinR");
+bone("ToeR", pos: (13, -11.5, 2), parent: "FootR");
+bone("ThighL", pos: (0, 9.6, 92), parent: "Root");
+bone("ShinL", pos: (2.2, 10.6, 50), parent: "ThighL");
+bone("FootL", pos: (0.8, 11.4, 10), parent: "ShinL");
+bone("ToeL", pos: (13, 11.5, 2), parent: "FootL");
+socket("Fit", at: (0, 0, 0), axis: (0, 0, 1));
+let rooted = skin_weights(body, selection: select_verts(body, min: (-400, -400, -400), max: (400, 400, 400)), bones: "Root", weights: [1]);
+let w0 = soft_selection(rooted, selection: select_verts(rooted, min: (-400, -400, 101), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s0 = skin_weights(rooted, selection: w0, bones: "Spine", weights: [1]);
+let w1 = soft_selection(s0, selection: select_verts(s0, min: (-400, -400, 114), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s1 = skin_weights(s0, selection: w1, bones: "Torso", weights: [1]);
+let w2 = soft_selection(s1, selection: select_verts(s1, min: (-400, -12, 152), max: (400, 12, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s2 = skin_weights(s1, selection: w2, bones: "Neck", weights: [1]);
+let w3 = soft_selection(s2, selection: select_verts(s2, min: (-400, -400, 158), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s3 = skin_weights(s2, selection: w3, bones: "Head", weights: [1]);
+let w4 = soft_selection(s3, selection: select_verts(s3, min: (-400, -400, 120), max: (400, -22, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s4 = skin_weights(s3, selection: w4, bones: "UpperArmR", weights: [1]);
+let w5 = soft_selection(s4, selection: select_verts(s4, min: (-400, -400, 120), max: (400, -49, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s5 = skin_weights(s4, selection: w5, bones: "ForearmR", weights: [1]);
+let w6 = soft_selection(s5, selection: select_verts(s5, min: (-400, -400, 120), max: (400, -73.5, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s6 = skin_weights(s5, selection: w6, bones: "HandR", weights: [1]);
+let w7 = soft_selection(s6, selection: select_verts(s6, min: (-400, -400, -400), max: (400, -0.1, 86)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s6, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s7 = skin_weights(s6, selection: w7, bones: "ThighR", weights: [1]);
+let w8 = soft_selection(s7, selection: select_verts(s7, min: (-400, -400, -400), max: (400, -0.1, 48)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s7, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s8 = skin_weights(s7, selection: w8, bones: "ShinR", weights: [1]);
+let w9 = soft_selection(s8, selection: select_verts(s8, min: (-400, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s8, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s9 = skin_weights(s8, selection: w9, bones: "FootR", weights: [1]);
+let w10 = soft_selection(s9, selection: select_verts(s9, min: (12, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s9, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s10 = skin_weights(s9, selection: w10, bones: "ToeR", weights: [1]);
+let w11 = soft_selection(s10, selection: select_verts(s10, min: (-400, 22, 120), max: (400, 400, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s11 = skin_weights(s10, selection: w11, bones: "UpperArmL", weights: [1]);
+let w12 = soft_selection(s11, selection: select_verts(s11, min: (-400, 49, 120), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s12 = skin_weights(s11, selection: w12, bones: "ForearmL", weights: [1]);
+let w13 = soft_selection(s12, selection: select_verts(s12, min: (-400, 73.5, 120), max: (400, 400, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s13 = skin_weights(s12, selection: w13, bones: "HandL", weights: [1]);
+let w14 = soft_selection(s13, selection: select_verts(s13, min: (-400, 0.1, -400), max: (400, 400, 86)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s13, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s14 = skin_weights(s13, selection: w14, bones: "ThighL", weights: [1]);
+let w15 = soft_selection(s14, selection: select_verts(s14, min: (-400, 0.1, -400), max: (400, 400, 48)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s14, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s15 = skin_weights(s14, selection: w15, bones: "ShinL", weights: [1]);
+let w16 = soft_selection(s15, selection: select_verts(s15, min: (-400, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s15, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s16 = skin_weights(s15, selection: w16, bones: "FootL", weights: [1]);
+let w17 = soft_selection(s16, selection: select_verts(s16, min: (12, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s16, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s17 = skin_weights(s16, selection: w17, bones: "ToeL", weights: [1]);
+let cut = separate(body, selection: selection_difference(selection_union(select_faces(body, min: (-400, -400, -400), max: (400, -36.5, 400)), select_faces(body, min: (-400, 36.5, -400), max: (400, 400, 400))), selection_union(select_faces(body, min: (-400, -400, -400), max: (400, -65.5, 400)), select_faces(body, min: (-400, 65.5, -400), max: (400, 400, 400)))));
+out.geo = transfer_weights(cut, source: s17, selection: select_verts(cut, min: (-400, -400, -400), max: (400, 400, 400)), max_distance: 2);
+#end
+
+#mesh TravMSkinThighs
+// Skin region: the part of the body a garment can hide (see skin_regions in the generator).
+budget(verts: 60000, indices: 240000);
+sim_box(min: (-45, -100, 0), max: (45, 100, 190));
+let body = part(TravelerMSkin);
+bone("Root", pos: (0, 0, 96));
+bone("Spine", pos: (0, 0, 104), parent: "Root");
+bone("Torso", pos: (0, 0, 118), parent: "Spine");
+bone("Neck", pos: (0, 0, 151), parent: "Torso");
+bone("Head", pos: (0, 0, 157.5), parent: "Neck");
+bone("ScapulaR", pos: (0, -7, 148), parent: "Torso");
+bone("UpperArmR", pos: (0, -19, 145), parent: "ScapulaR");
+bone("ForearmR", pos: (0, -47, 145), parent: "UpperArmR");
+bone("HandR", pos: (0, -72, 145), parent: "ForearmR");
+bone("ScapulaL", pos: (0, 7, 148), parent: "Torso");
+bone("UpperArmL", pos: (0, 19, 145), parent: "ScapulaL");
+bone("ForearmL", pos: (0, 47, 145), parent: "UpperArmL");
+bone("HandL", pos: (0, 72, 145), parent: "ForearmL");
+bone("ThighR", pos: (0, -9.6, 92), parent: "Root");
+bone("ShinR", pos: (2.2, -10.6, 50), parent: "ThighR");
+bone("FootR", pos: (0.8, -11.4, 10), parent: "ShinR");
+bone("ToeR", pos: (13, -11.5, 2), parent: "FootR");
+bone("ThighL", pos: (0, 9.6, 92), parent: "Root");
+bone("ShinL", pos: (2.2, 10.6, 50), parent: "ThighL");
+bone("FootL", pos: (0.8, 11.4, 10), parent: "ShinL");
+bone("ToeL", pos: (13, 11.5, 2), parent: "FootL");
+socket("Fit", at: (0, 0, 0), axis: (0, 0, 1));
+let rooted = skin_weights(body, selection: select_verts(body, min: (-400, -400, -400), max: (400, 400, 400)), bones: "Root", weights: [1]);
+let w0 = soft_selection(rooted, selection: select_verts(rooted, min: (-400, -400, 101), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s0 = skin_weights(rooted, selection: w0, bones: "Spine", weights: [1]);
+let w1 = soft_selection(s0, selection: select_verts(s0, min: (-400, -400, 114), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s1 = skin_weights(s0, selection: w1, bones: "Torso", weights: [1]);
+let w2 = soft_selection(s1, selection: select_verts(s1, min: (-400, -12, 152), max: (400, 12, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s2 = skin_weights(s1, selection: w2, bones: "Neck", weights: [1]);
+let w3 = soft_selection(s2, selection: select_verts(s2, min: (-400, -400, 158), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s3 = skin_weights(s2, selection: w3, bones: "Head", weights: [1]);
+let w4 = soft_selection(s3, selection: select_verts(s3, min: (-400, -400, 120), max: (400, -22, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s4 = skin_weights(s3, selection: w4, bones: "UpperArmR", weights: [1]);
+let w5 = soft_selection(s4, selection: select_verts(s4, min: (-400, -400, 120), max: (400, -49, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s5 = skin_weights(s4, selection: w5, bones: "ForearmR", weights: [1]);
+let w6 = soft_selection(s5, selection: select_verts(s5, min: (-400, -400, 120), max: (400, -73.5, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s6 = skin_weights(s5, selection: w6, bones: "HandR", weights: [1]);
+let w7 = soft_selection(s6, selection: select_verts(s6, min: (-400, -400, -400), max: (400, -0.1, 86)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s6, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s7 = skin_weights(s6, selection: w7, bones: "ThighR", weights: [1]);
+let w8 = soft_selection(s7, selection: select_verts(s7, min: (-400, -400, -400), max: (400, -0.1, 48)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s7, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s8 = skin_weights(s7, selection: w8, bones: "ShinR", weights: [1]);
+let w9 = soft_selection(s8, selection: select_verts(s8, min: (-400, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s8, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s9 = skin_weights(s8, selection: w9, bones: "FootR", weights: [1]);
+let w10 = soft_selection(s9, selection: select_verts(s9, min: (12, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s9, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s10 = skin_weights(s9, selection: w10, bones: "ToeR", weights: [1]);
+let w11 = soft_selection(s10, selection: select_verts(s10, min: (-400, 22, 120), max: (400, 400, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s11 = skin_weights(s10, selection: w11, bones: "UpperArmL", weights: [1]);
+let w12 = soft_selection(s11, selection: select_verts(s11, min: (-400, 49, 120), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s12 = skin_weights(s11, selection: w12, bones: "ForearmL", weights: [1]);
+let w13 = soft_selection(s12, selection: select_verts(s12, min: (-400, 73.5, 120), max: (400, 400, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s13 = skin_weights(s12, selection: w13, bones: "HandL", weights: [1]);
+let w14 = soft_selection(s13, selection: select_verts(s13, min: (-400, 0.1, -400), max: (400, 400, 86)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s13, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s14 = skin_weights(s13, selection: w14, bones: "ThighL", weights: [1]);
+let w15 = soft_selection(s14, selection: select_verts(s14, min: (-400, 0.1, -400), max: (400, 400, 48)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s14, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s15 = skin_weights(s14, selection: w15, bones: "ShinL", weights: [1]);
+let w16 = soft_selection(s15, selection: select_verts(s15, min: (-400, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s15, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s16 = skin_weights(s15, selection: w16, bones: "FootL", weights: [1]);
+let w17 = soft_selection(s16, selection: select_verts(s16, min: (12, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s16, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s17 = skin_weights(s16, selection: w17, bones: "ToeL", weights: [1]);
+let cut = separate(body, selection: selection_intersection(selection_difference(select_faces(body, min: (-400, -400, 9), max: (400, 400, 400)), select_faces(body, min: (-400, -400, -400), max: (400, 400, 47.5))), select_faces(body, min: (-400, -400, -400), max: (400, 400, 85.5))));
+out.geo = transfer_weights(cut, source: s17, selection: select_verts(cut, min: (-400, -400, -400), max: (400, 400, 400)), max_distance: 2);
+#end
+
+#mesh TravMSkinShins
+// Skin region: the part of the body a garment can hide (see skin_regions in the generator).
+budget(verts: 60000, indices: 240000);
+sim_box(min: (-45, -100, 0), max: (45, 100, 190));
+let body = part(TravelerMSkin);
+bone("Root", pos: (0, 0, 96));
+bone("Spine", pos: (0, 0, 104), parent: "Root");
+bone("Torso", pos: (0, 0, 118), parent: "Spine");
+bone("Neck", pos: (0, 0, 151), parent: "Torso");
+bone("Head", pos: (0, 0, 157.5), parent: "Neck");
+bone("ScapulaR", pos: (0, -7, 148), parent: "Torso");
+bone("UpperArmR", pos: (0, -19, 145), parent: "ScapulaR");
+bone("ForearmR", pos: (0, -47, 145), parent: "UpperArmR");
+bone("HandR", pos: (0, -72, 145), parent: "ForearmR");
+bone("ScapulaL", pos: (0, 7, 148), parent: "Torso");
+bone("UpperArmL", pos: (0, 19, 145), parent: "ScapulaL");
+bone("ForearmL", pos: (0, 47, 145), parent: "UpperArmL");
+bone("HandL", pos: (0, 72, 145), parent: "ForearmL");
+bone("ThighR", pos: (0, -9.6, 92), parent: "Root");
+bone("ShinR", pos: (2.2, -10.6, 50), parent: "ThighR");
+bone("FootR", pos: (0.8, -11.4, 10), parent: "ShinR");
+bone("ToeR", pos: (13, -11.5, 2), parent: "FootR");
+bone("ThighL", pos: (0, 9.6, 92), parent: "Root");
+bone("ShinL", pos: (2.2, 10.6, 50), parent: "ThighL");
+bone("FootL", pos: (0.8, 11.4, 10), parent: "ShinL");
+bone("ToeL", pos: (13, 11.5, 2), parent: "FootL");
+socket("Fit", at: (0, 0, 0), axis: (0, 0, 1));
+let rooted = skin_weights(body, selection: select_verts(body, min: (-400, -400, -400), max: (400, 400, 400)), bones: "Root", weights: [1]);
+let w0 = soft_selection(rooted, selection: select_verts(rooted, min: (-400, -400, 101), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s0 = skin_weights(rooted, selection: w0, bones: "Spine", weights: [1]);
+let w1 = soft_selection(s0, selection: select_verts(s0, min: (-400, -400, 114), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s1 = skin_weights(s0, selection: w1, bones: "Torso", weights: [1]);
+let w2 = soft_selection(s1, selection: select_verts(s1, min: (-400, -12, 152), max: (400, 12, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s2 = skin_weights(s1, selection: w2, bones: "Neck", weights: [1]);
+let w3 = soft_selection(s2, selection: select_verts(s2, min: (-400, -400, 158), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s3 = skin_weights(s2, selection: w3, bones: "Head", weights: [1]);
+let w4 = soft_selection(s3, selection: select_verts(s3, min: (-400, -400, 120), max: (400, -22, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s4 = skin_weights(s3, selection: w4, bones: "UpperArmR", weights: [1]);
+let w5 = soft_selection(s4, selection: select_verts(s4, min: (-400, -400, 120), max: (400, -49, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s5 = skin_weights(s4, selection: w5, bones: "ForearmR", weights: [1]);
+let w6 = soft_selection(s5, selection: select_verts(s5, min: (-400, -400, 120), max: (400, -73.5, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s6 = skin_weights(s5, selection: w6, bones: "HandR", weights: [1]);
+let w7 = soft_selection(s6, selection: select_verts(s6, min: (-400, -400, -400), max: (400, -0.1, 86)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s6, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s7 = skin_weights(s6, selection: w7, bones: "ThighR", weights: [1]);
+let w8 = soft_selection(s7, selection: select_verts(s7, min: (-400, -400, -400), max: (400, -0.1, 48)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s7, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s8 = skin_weights(s7, selection: w8, bones: "ShinR", weights: [1]);
+let w9 = soft_selection(s8, selection: select_verts(s8, min: (-400, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s8, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s9 = skin_weights(s8, selection: w9, bones: "FootR", weights: [1]);
+let w10 = soft_selection(s9, selection: select_verts(s9, min: (12, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s9, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s10 = skin_weights(s9, selection: w10, bones: "ToeR", weights: [1]);
+let w11 = soft_selection(s10, selection: select_verts(s10, min: (-400, 22, 120), max: (400, 400, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s11 = skin_weights(s10, selection: w11, bones: "UpperArmL", weights: [1]);
+let w12 = soft_selection(s11, selection: select_verts(s11, min: (-400, 49, 120), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s12 = skin_weights(s11, selection: w12, bones: "ForearmL", weights: [1]);
+let w13 = soft_selection(s12, selection: select_verts(s12, min: (-400, 73.5, 120), max: (400, 400, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s13 = skin_weights(s12, selection: w13, bones: "HandL", weights: [1]);
+let w14 = soft_selection(s13, selection: select_verts(s13, min: (-400, 0.1, -400), max: (400, 400, 86)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s13, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s14 = skin_weights(s13, selection: w14, bones: "ThighL", weights: [1]);
+let w15 = soft_selection(s14, selection: select_verts(s14, min: (-400, 0.1, -400), max: (400, 400, 48)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s14, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s15 = skin_weights(s14, selection: w15, bones: "ShinL", weights: [1]);
+let w16 = soft_selection(s15, selection: select_verts(s15, min: (-400, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s15, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s16 = skin_weights(s15, selection: w16, bones: "FootL", weights: [1]);
+let w17 = soft_selection(s16, selection: select_verts(s16, min: (12, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s16, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s17 = skin_weights(s16, selection: w17, bones: "ToeL", weights: [1]);
+let cut = separate(body, selection: selection_intersection(select_faces(body, min: (-400, -400, 9), max: (400, 400, 400)), select_faces(body, min: (-400, -400, -400), max: (400, 400, 47.5))));
+out.geo = transfer_weights(cut, source: s17, selection: select_verts(cut, min: (-400, -400, -400), max: (400, 400, 400)), max_distance: 2);
+#end
+
+#mesh TravMSkinFeet
+// Skin region: the part of the body a garment can hide (see skin_regions in the generator).
+budget(verts: 60000, indices: 240000);
+sim_box(min: (-45, -100, 0), max: (45, 100, 190));
+let body = part(TravelerMSkin);
+bone("Root", pos: (0, 0, 96));
+bone("Spine", pos: (0, 0, 104), parent: "Root");
+bone("Torso", pos: (0, 0, 118), parent: "Spine");
+bone("Neck", pos: (0, 0, 151), parent: "Torso");
+bone("Head", pos: (0, 0, 157.5), parent: "Neck");
+bone("ScapulaR", pos: (0, -7, 148), parent: "Torso");
+bone("UpperArmR", pos: (0, -19, 145), parent: "ScapulaR");
+bone("ForearmR", pos: (0, -47, 145), parent: "UpperArmR");
+bone("HandR", pos: (0, -72, 145), parent: "ForearmR");
+bone("ScapulaL", pos: (0, 7, 148), parent: "Torso");
+bone("UpperArmL", pos: (0, 19, 145), parent: "ScapulaL");
+bone("ForearmL", pos: (0, 47, 145), parent: "UpperArmL");
+bone("HandL", pos: (0, 72, 145), parent: "ForearmL");
+bone("ThighR", pos: (0, -9.6, 92), parent: "Root");
+bone("ShinR", pos: (2.2, -10.6, 50), parent: "ThighR");
+bone("FootR", pos: (0.8, -11.4, 10), parent: "ShinR");
+bone("ToeR", pos: (13, -11.5, 2), parent: "FootR");
+bone("ThighL", pos: (0, 9.6, 92), parent: "Root");
+bone("ShinL", pos: (2.2, 10.6, 50), parent: "ThighL");
+bone("FootL", pos: (0.8, 11.4, 10), parent: "ShinL");
+bone("ToeL", pos: (13, 11.5, 2), parent: "FootL");
+socket("Fit", at: (0, 0, 0), axis: (0, 0, 1));
+let rooted = skin_weights(body, selection: select_verts(body, min: (-400, -400, -400), max: (400, 400, 400)), bones: "Root", weights: [1]);
+let w0 = soft_selection(rooted, selection: select_verts(rooted, min: (-400, -400, 101), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s0 = skin_weights(rooted, selection: w0, bones: "Spine", weights: [1]);
+let w1 = soft_selection(s0, selection: select_verts(s0, min: (-400, -400, 114), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s1 = skin_weights(s0, selection: w1, bones: "Torso", weights: [1]);
+let w2 = soft_selection(s1, selection: select_verts(s1, min: (-400, -12, 152), max: (400, 12, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s2 = skin_weights(s1, selection: w2, bones: "Neck", weights: [1]);
+let w3 = soft_selection(s2, selection: select_verts(s2, min: (-400, -400, 158), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s3 = skin_weights(s2, selection: w3, bones: "Head", weights: [1]);
+let w4 = soft_selection(s3, selection: select_verts(s3, min: (-400, -400, 120), max: (400, -22, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s4 = skin_weights(s3, selection: w4, bones: "UpperArmR", weights: [1]);
+let w5 = soft_selection(s4, selection: select_verts(s4, min: (-400, -400, 120), max: (400, -49, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s5 = skin_weights(s4, selection: w5, bones: "ForearmR", weights: [1]);
+let w6 = soft_selection(s5, selection: select_verts(s5, min: (-400, -400, 120), max: (400, -73.5, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s6 = skin_weights(s5, selection: w6, bones: "HandR", weights: [1]);
+let w7 = soft_selection(s6, selection: select_verts(s6, min: (-400, -400, -400), max: (400, -0.1, 86)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s6, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s7 = skin_weights(s6, selection: w7, bones: "ThighR", weights: [1]);
+let w8 = soft_selection(s7, selection: select_verts(s7, min: (-400, -400, -400), max: (400, -0.1, 48)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s7, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s8 = skin_weights(s7, selection: w8, bones: "ShinR", weights: [1]);
+let w9 = soft_selection(s8, selection: select_verts(s8, min: (-400, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s8, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s9 = skin_weights(s8, selection: w9, bones: "FootR", weights: [1]);
+let w10 = soft_selection(s9, selection: select_verts(s9, min: (12, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s9, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s10 = skin_weights(s9, selection: w10, bones: "ToeR", weights: [1]);
+let w11 = soft_selection(s10, selection: select_verts(s10, min: (-400, 22, 120), max: (400, 400, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s11 = skin_weights(s10, selection: w11, bones: "UpperArmL", weights: [1]);
+let w12 = soft_selection(s11, selection: select_verts(s11, min: (-400, 49, 120), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s12 = skin_weights(s11, selection: w12, bones: "ForearmL", weights: [1]);
+let w13 = soft_selection(s12, selection: select_verts(s12, min: (-400, 73.5, 120), max: (400, 400, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s13 = skin_weights(s12, selection: w13, bones: "HandL", weights: [1]);
+let w14 = soft_selection(s13, selection: select_verts(s13, min: (-400, 0.1, -400), max: (400, 400, 86)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s13, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s14 = skin_weights(s13, selection: w14, bones: "ThighL", weights: [1]);
+let w15 = soft_selection(s14, selection: select_verts(s14, min: (-400, 0.1, -400), max: (400, 400, 48)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s14, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s15 = skin_weights(s14, selection: w15, bones: "ShinL", weights: [1]);
+let w16 = soft_selection(s15, selection: select_verts(s15, min: (-400, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s15, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s16 = skin_weights(s15, selection: w16, bones: "FootL", weights: [1]);
+let w17 = soft_selection(s16, selection: select_verts(s16, min: (12, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s16, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s17 = skin_weights(s16, selection: w17, bones: "ToeL", weights: [1]);
+let cut = separate(body, selection: select_faces(body, min: (-400, -400, 9), max: (400, 400, 400), invert: "yes"));
+out.geo = transfer_weights(cut, source: s17, selection: select_verts(cut, min: (-400, -400, -400), max: (400, 400, 400)), max_distance: 2);
+#end
+
 #mesh TravFHair
 // Wearable piece: garment only, rigged like the body so it plays the same clips; tinted per object with SetColor.
 budget(verts: 60000, indices: 240000);
@@ -3384,6 +3804,506 @@ let w17 = soft_selection(s16, selection: select_verts(s16, min: (11, 0.1, -400),
 let s17 = skin_weights(s16, selection: w17, bones: "ToeL", weights: [1]);
 out.geo = transfer_weights(wear, source: s17, selection: select_verts(wear, min: (-400, -400, -400), max: (400, 400, 400)), max_distance: 20);
 #end
+
+#mesh TravFSkinCore
+// Skin region: the part of the body a garment can hide (see skin_regions in the generator).
+budget(verts: 60000, indices: 240000);
+sim_box(min: (-45, -100, 0), max: (45, 100, 190));
+let body = part(TravelerFSkin);
+bone("Root", pos: (0, 0, 89));
+bone("Spine", pos: (0, 0, 96.5), parent: "Root");
+bone("Torso", pos: (0, 0, 109.5), parent: "Spine");
+bone("Neck", pos: (0, 0, 140.5), parent: "Torso");
+bone("Head", pos: (0, 0, 146.5), parent: "Neck");
+bone("ScapulaR", pos: (0, -6.3, 137.8), parent: "Torso");
+bone("UpperArmR", pos: (0, -16.5, 135), parent: "ScapulaR");
+bone("ForearmR", pos: (0, -42.5, 135), parent: "UpperArmR");
+bone("HandR", pos: (0, -65.5, 135), parent: "ForearmR");
+bone("ScapulaL", pos: (0, 6.3, 137.8), parent: "Torso");
+bone("UpperArmL", pos: (0, 16.5, 135), parent: "ScapulaL");
+bone("ForearmL", pos: (0, 42.5, 135), parent: "UpperArmL");
+bone("HandL", pos: (0, 65.5, 135), parent: "ForearmL");
+bone("ThighR", pos: (0, -9.6, 85.5), parent: "Root");
+bone("ShinR", pos: (2.2, -10, 46.5), parent: "ThighR");
+bone("FootR", pos: (0.8, -10.5, 9.5), parent: "ShinR");
+bone("ToeR", pos: (12, -10.6, 2), parent: "FootR");
+bone("ThighL", pos: (0, 9.6, 85.5), parent: "Root");
+bone("ShinL", pos: (2.2, 10, 46.5), parent: "ThighL");
+bone("FootL", pos: (0.8, 10.5, 9.5), parent: "ShinL");
+bone("ToeL", pos: (12, 10.6, 2), parent: "FootL");
+socket("Hat", at: (1, 0, 165.6), axis: (0, 0, 1), bone: "Head");
+socket("Face", at: (10.5, 0, 157), axis: (1, 0, 0), bone: "Head");
+socket("Chest", at: (13.5, 0, 124), axis: (1, 0, 0), bone: "Torso");
+socket("Back", at: (-20, 0, 119), axis: (0, 0, 1), bone: "Torso");
+socket("BeltFront", at: (9, 0, 97), axis: (1, 0, 0), bone: "Root");
+socket("BeltBack", at: (-10, 0, 97), axis: (-1, 0, 0), bone: "Root");
+socket("HipR", at: (0, -18, 90), axis: (0, -1, 0), bone: "Root");
+socket("HipL", at: (0, 18, 90), axis: (0, 1, 0), bone: "Root");
+socket("ShoulderR", at: (0, -16.5, 139.5), axis: (0, 0, 1), bone: "ScapulaR");
+socket("ShoulderL", at: (0, 16.5, 139.5), axis: (0, 0, 1), bone: "ScapulaL");
+socket("HoldR", at: (0, -73, 133.3), axis: (1, 0, 0), bone: "HandR");
+socket("HoldL", at: (0, 73, 133.3), axis: (1, 0, 0), bone: "HandL");
+socket("Fit", at: (0, 0, 0), axis: (0, 0, 1));
+let rooted = skin_weights(body, selection: select_verts(body, min: (-400, -400, -400), max: (400, 400, 400)), bones: "Root", weights: [1]);
+let w0 = soft_selection(rooted, selection: select_verts(rooted, min: (-400, -400, 94), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s0 = skin_weights(rooted, selection: w0, bones: "Spine", weights: [1]);
+let w1 = soft_selection(s0, selection: select_verts(s0, min: (-400, -400, 106), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s1 = skin_weights(s0, selection: w1, bones: "Torso", weights: [1]);
+let w2 = soft_selection(s1, selection: select_verts(s1, min: (-400, -11, 141.5), max: (400, 11, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s2 = skin_weights(s1, selection: w2, bones: "Neck", weights: [1]);
+let w3 = soft_selection(s2, selection: select_verts(s2, min: (-400, -400, 147), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s3 = skin_weights(s2, selection: w3, bones: "Head", weights: [1]);
+let w4 = soft_selection(s3, selection: select_verts(s3, min: (-400, -400, 110), max: (400, -19.5, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s4 = skin_weights(s3, selection: w4, bones: "UpperArmR", weights: [1]);
+let w5 = soft_selection(s4, selection: select_verts(s4, min: (-400, -400, 110), max: (400, -44.5, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s5 = skin_weights(s4, selection: w5, bones: "ForearmR", weights: [1]);
+let w6 = soft_selection(s5, selection: select_verts(s5, min: (-400, -400, 110), max: (400, -67, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s6 = skin_weights(s5, selection: w6, bones: "HandR", weights: [1]);
+let w7 = soft_selection(s6, selection: select_verts(s6, min: (-400, -400, -400), max: (400, -0.1, 80)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s6, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s7 = skin_weights(s6, selection: w7, bones: "ThighR", weights: [1]);
+let w8 = soft_selection(s7, selection: select_verts(s7, min: (-400, -400, -400), max: (400, -0.1, 44.5)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s7, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s8 = skin_weights(s7, selection: w8, bones: "ShinR", weights: [1]);
+let w9 = soft_selection(s8, selection: select_verts(s8, min: (-400, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s8, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s9 = skin_weights(s8, selection: w9, bones: "FootR", weights: [1]);
+let w10 = soft_selection(s9, selection: select_verts(s9, min: (11, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s9, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s10 = skin_weights(s9, selection: w10, bones: "ToeR", weights: [1]);
+let w11 = soft_selection(s10, selection: select_verts(s10, min: (-400, 19.5, 110), max: (400, 400, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s11 = skin_weights(s10, selection: w11, bones: "UpperArmL", weights: [1]);
+let w12 = soft_selection(s11, selection: select_verts(s11, min: (-400, 44.5, 110), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s12 = skin_weights(s11, selection: w12, bones: "ForearmL", weights: [1]);
+let w13 = soft_selection(s12, selection: select_verts(s12, min: (-400, 67, 110), max: (400, 400, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s13 = skin_weights(s12, selection: w13, bones: "HandL", weights: [1]);
+let w14 = soft_selection(s13, selection: select_verts(s13, min: (-400, 0.1, -400), max: (400, 400, 80)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s13, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s14 = skin_weights(s13, selection: w14, bones: "ThighL", weights: [1]);
+let w15 = soft_selection(s14, selection: select_verts(s14, min: (-400, 0.1, -400), max: (400, 400, 44.5)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s14, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s15 = skin_weights(s14, selection: w15, bones: "ShinL", weights: [1]);
+let w16 = soft_selection(s15, selection: select_verts(s15, min: (-400, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s15, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s16 = skin_weights(s15, selection: w16, bones: "FootL", weights: [1]);
+let w17 = soft_selection(s16, selection: select_verts(s16, min: (11, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s16, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s17 = skin_weights(s16, selection: w17, bones: "ToeL", weights: [1]);
+let cut = separate(body, selection: selection_union(select_faces(body, min: (-400, -13, 136.5), max: (400, 13, 400)), selection_union(select_faces(body, min: (-400, -400, -400), max: (400, -59, 400)), select_faces(body, min: (-400, 59, -400), max: (400, 400, 400)))));
+out.geo = transfer_weights(cut, source: s17, selection: select_verts(cut, min: (-400, -400, -400), max: (400, 400, 400)), max_distance: 2);
+#end
+
+#mesh TravFSkinTorso
+// Skin region: the part of the body a garment can hide (see skin_regions in the generator).
+budget(verts: 60000, indices: 240000);
+sim_box(min: (-45, -100, 0), max: (45, 100, 190));
+let body = part(TravelerFSkin);
+bone("Root", pos: (0, 0, 89));
+bone("Spine", pos: (0, 0, 96.5), parent: "Root");
+bone("Torso", pos: (0, 0, 109.5), parent: "Spine");
+bone("Neck", pos: (0, 0, 140.5), parent: "Torso");
+bone("Head", pos: (0, 0, 146.5), parent: "Neck");
+bone("ScapulaR", pos: (0, -6.3, 137.8), parent: "Torso");
+bone("UpperArmR", pos: (0, -16.5, 135), parent: "ScapulaR");
+bone("ForearmR", pos: (0, -42.5, 135), parent: "UpperArmR");
+bone("HandR", pos: (0, -65.5, 135), parent: "ForearmR");
+bone("ScapulaL", pos: (0, 6.3, 137.8), parent: "Torso");
+bone("UpperArmL", pos: (0, 16.5, 135), parent: "ScapulaL");
+bone("ForearmL", pos: (0, 42.5, 135), parent: "UpperArmL");
+bone("HandL", pos: (0, 65.5, 135), parent: "ForearmL");
+bone("ThighR", pos: (0, -9.6, 85.5), parent: "Root");
+bone("ShinR", pos: (2.2, -10, 46.5), parent: "ThighR");
+bone("FootR", pos: (0.8, -10.5, 9.5), parent: "ShinR");
+bone("ToeR", pos: (12, -10.6, 2), parent: "FootR");
+bone("ThighL", pos: (0, 9.6, 85.5), parent: "Root");
+bone("ShinL", pos: (2.2, 10, 46.5), parent: "ThighL");
+bone("FootL", pos: (0.8, 10.5, 9.5), parent: "ShinL");
+bone("ToeL", pos: (12, 10.6, 2), parent: "FootL");
+socket("Fit", at: (0, 0, 0), axis: (0, 0, 1));
+let rooted = skin_weights(body, selection: select_verts(body, min: (-400, -400, -400), max: (400, 400, 400)), bones: "Root", weights: [1]);
+let w0 = soft_selection(rooted, selection: select_verts(rooted, min: (-400, -400, 94), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s0 = skin_weights(rooted, selection: w0, bones: "Spine", weights: [1]);
+let w1 = soft_selection(s0, selection: select_verts(s0, min: (-400, -400, 106), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s1 = skin_weights(s0, selection: w1, bones: "Torso", weights: [1]);
+let w2 = soft_selection(s1, selection: select_verts(s1, min: (-400, -11, 141.5), max: (400, 11, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s2 = skin_weights(s1, selection: w2, bones: "Neck", weights: [1]);
+let w3 = soft_selection(s2, selection: select_verts(s2, min: (-400, -400, 147), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s3 = skin_weights(s2, selection: w3, bones: "Head", weights: [1]);
+let w4 = soft_selection(s3, selection: select_verts(s3, min: (-400, -400, 110), max: (400, -19.5, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s4 = skin_weights(s3, selection: w4, bones: "UpperArmR", weights: [1]);
+let w5 = soft_selection(s4, selection: select_verts(s4, min: (-400, -400, 110), max: (400, -44.5, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s5 = skin_weights(s4, selection: w5, bones: "ForearmR", weights: [1]);
+let w6 = soft_selection(s5, selection: select_verts(s5, min: (-400, -400, 110), max: (400, -67, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s6 = skin_weights(s5, selection: w6, bones: "HandR", weights: [1]);
+let w7 = soft_selection(s6, selection: select_verts(s6, min: (-400, -400, -400), max: (400, -0.1, 80)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s6, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s7 = skin_weights(s6, selection: w7, bones: "ThighR", weights: [1]);
+let w8 = soft_selection(s7, selection: select_verts(s7, min: (-400, -400, -400), max: (400, -0.1, 44.5)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s7, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s8 = skin_weights(s7, selection: w8, bones: "ShinR", weights: [1]);
+let w9 = soft_selection(s8, selection: select_verts(s8, min: (-400, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s8, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s9 = skin_weights(s8, selection: w9, bones: "FootR", weights: [1]);
+let w10 = soft_selection(s9, selection: select_verts(s9, min: (11, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s9, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s10 = skin_weights(s9, selection: w10, bones: "ToeR", weights: [1]);
+let w11 = soft_selection(s10, selection: select_verts(s10, min: (-400, 19.5, 110), max: (400, 400, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s11 = skin_weights(s10, selection: w11, bones: "UpperArmL", weights: [1]);
+let w12 = soft_selection(s11, selection: select_verts(s11, min: (-400, 44.5, 110), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s12 = skin_weights(s11, selection: w12, bones: "ForearmL", weights: [1]);
+let w13 = soft_selection(s12, selection: select_verts(s12, min: (-400, 67, 110), max: (400, 400, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s13 = skin_weights(s12, selection: w13, bones: "HandL", weights: [1]);
+let w14 = soft_selection(s13, selection: select_verts(s13, min: (-400, 0.1, -400), max: (400, 400, 80)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s13, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s14 = skin_weights(s13, selection: w14, bones: "ThighL", weights: [1]);
+let w15 = soft_selection(s14, selection: select_verts(s14, min: (-400, 0.1, -400), max: (400, 400, 44.5)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s14, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s15 = skin_weights(s14, selection: w15, bones: "ShinL", weights: [1]);
+let w16 = soft_selection(s15, selection: select_verts(s15, min: (-400, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s15, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s16 = skin_weights(s15, selection: w16, bones: "FootL", weights: [1]);
+let w17 = soft_selection(s16, selection: select_verts(s16, min: (11, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s16, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s17 = skin_weights(s16, selection: w17, bones: "ToeL", weights: [1]);
+let cut = separate(body, selection: selection_difference(selection_difference(select_faces(body, min: (-400, -400, 91.5), max: (400, 400, 400)), selection_union(select_faces(body, min: (-400, -400, -400), max: (400, -32, 400)), select_faces(body, min: (-400, 32, -400), max: (400, 400, 400)))), select_faces(body, min: (-400, -13, 136.5), max: (400, 13, 400))));
+out.geo = transfer_weights(cut, source: s17, selection: select_verts(cut, min: (-400, -400, -400), max: (400, 400, 400)), max_distance: 2);
+#end
+
+#mesh TravFSkinArms
+// Skin region: the part of the body a garment can hide (see skin_regions in the generator).
+budget(verts: 60000, indices: 240000);
+sim_box(min: (-45, -100, 0), max: (45, 100, 190));
+let body = part(TravelerFSkin);
+bone("Root", pos: (0, 0, 89));
+bone("Spine", pos: (0, 0, 96.5), parent: "Root");
+bone("Torso", pos: (0, 0, 109.5), parent: "Spine");
+bone("Neck", pos: (0, 0, 140.5), parent: "Torso");
+bone("Head", pos: (0, 0, 146.5), parent: "Neck");
+bone("ScapulaR", pos: (0, -6.3, 137.8), parent: "Torso");
+bone("UpperArmR", pos: (0, -16.5, 135), parent: "ScapulaR");
+bone("ForearmR", pos: (0, -42.5, 135), parent: "UpperArmR");
+bone("HandR", pos: (0, -65.5, 135), parent: "ForearmR");
+bone("ScapulaL", pos: (0, 6.3, 137.8), parent: "Torso");
+bone("UpperArmL", pos: (0, 16.5, 135), parent: "ScapulaL");
+bone("ForearmL", pos: (0, 42.5, 135), parent: "UpperArmL");
+bone("HandL", pos: (0, 65.5, 135), parent: "ForearmL");
+bone("ThighR", pos: (0, -9.6, 85.5), parent: "Root");
+bone("ShinR", pos: (2.2, -10, 46.5), parent: "ThighR");
+bone("FootR", pos: (0.8, -10.5, 9.5), parent: "ShinR");
+bone("ToeR", pos: (12, -10.6, 2), parent: "FootR");
+bone("ThighL", pos: (0, 9.6, 85.5), parent: "Root");
+bone("ShinL", pos: (2.2, 10, 46.5), parent: "ThighL");
+bone("FootL", pos: (0.8, 10.5, 9.5), parent: "ShinL");
+bone("ToeL", pos: (12, 10.6, 2), parent: "FootL");
+socket("Fit", at: (0, 0, 0), axis: (0, 0, 1));
+let rooted = skin_weights(body, selection: select_verts(body, min: (-400, -400, -400), max: (400, 400, 400)), bones: "Root", weights: [1]);
+let w0 = soft_selection(rooted, selection: select_verts(rooted, min: (-400, -400, 94), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s0 = skin_weights(rooted, selection: w0, bones: "Spine", weights: [1]);
+let w1 = soft_selection(s0, selection: select_verts(s0, min: (-400, -400, 106), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s1 = skin_weights(s0, selection: w1, bones: "Torso", weights: [1]);
+let w2 = soft_selection(s1, selection: select_verts(s1, min: (-400, -11, 141.5), max: (400, 11, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s2 = skin_weights(s1, selection: w2, bones: "Neck", weights: [1]);
+let w3 = soft_selection(s2, selection: select_verts(s2, min: (-400, -400, 147), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s3 = skin_weights(s2, selection: w3, bones: "Head", weights: [1]);
+let w4 = soft_selection(s3, selection: select_verts(s3, min: (-400, -400, 110), max: (400, -19.5, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s4 = skin_weights(s3, selection: w4, bones: "UpperArmR", weights: [1]);
+let w5 = soft_selection(s4, selection: select_verts(s4, min: (-400, -400, 110), max: (400, -44.5, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s5 = skin_weights(s4, selection: w5, bones: "ForearmR", weights: [1]);
+let w6 = soft_selection(s5, selection: select_verts(s5, min: (-400, -400, 110), max: (400, -67, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s6 = skin_weights(s5, selection: w6, bones: "HandR", weights: [1]);
+let w7 = soft_selection(s6, selection: select_verts(s6, min: (-400, -400, -400), max: (400, -0.1, 80)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s6, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s7 = skin_weights(s6, selection: w7, bones: "ThighR", weights: [1]);
+let w8 = soft_selection(s7, selection: select_verts(s7, min: (-400, -400, -400), max: (400, -0.1, 44.5)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s7, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s8 = skin_weights(s7, selection: w8, bones: "ShinR", weights: [1]);
+let w9 = soft_selection(s8, selection: select_verts(s8, min: (-400, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s8, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s9 = skin_weights(s8, selection: w9, bones: "FootR", weights: [1]);
+let w10 = soft_selection(s9, selection: select_verts(s9, min: (11, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s9, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s10 = skin_weights(s9, selection: w10, bones: "ToeR", weights: [1]);
+let w11 = soft_selection(s10, selection: select_verts(s10, min: (-400, 19.5, 110), max: (400, 400, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s11 = skin_weights(s10, selection: w11, bones: "UpperArmL", weights: [1]);
+let w12 = soft_selection(s11, selection: select_verts(s11, min: (-400, 44.5, 110), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s12 = skin_weights(s11, selection: w12, bones: "ForearmL", weights: [1]);
+let w13 = soft_selection(s12, selection: select_verts(s12, min: (-400, 67, 110), max: (400, 400, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s13 = skin_weights(s12, selection: w13, bones: "HandL", weights: [1]);
+let w14 = soft_selection(s13, selection: select_verts(s13, min: (-400, 0.1, -400), max: (400, 400, 80)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s13, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s14 = skin_weights(s13, selection: w14, bones: "ThighL", weights: [1]);
+let w15 = soft_selection(s14, selection: select_verts(s14, min: (-400, 0.1, -400), max: (400, 400, 44.5)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s14, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s15 = skin_weights(s14, selection: w15, bones: "ShinL", weights: [1]);
+let w16 = soft_selection(s15, selection: select_verts(s15, min: (-400, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s15, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s16 = skin_weights(s15, selection: w16, bones: "FootL", weights: [1]);
+let w17 = soft_selection(s16, selection: select_verts(s16, min: (11, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s16, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s17 = skin_weights(s16, selection: w17, bones: "ToeL", weights: [1]);
+let cut = separate(body, selection: selection_difference(selection_union(select_faces(body, min: (-400, -400, -400), max: (400, -32, 400)), select_faces(body, min: (-400, 32, -400), max: (400, 400, 400))), selection_union(select_faces(body, min: (-400, -400, -400), max: (400, -59, 400)), select_faces(body, min: (-400, 59, -400), max: (400, 400, 400)))));
+out.geo = transfer_weights(cut, source: s17, selection: select_verts(cut, min: (-400, -400, -400), max: (400, 400, 400)), max_distance: 2);
+#end
+
+#mesh TravFSkinThighs
+// Skin region: the part of the body a garment can hide (see skin_regions in the generator).
+budget(verts: 60000, indices: 240000);
+sim_box(min: (-45, -100, 0), max: (45, 100, 190));
+let body = part(TravelerFSkin);
+bone("Root", pos: (0, 0, 89));
+bone("Spine", pos: (0, 0, 96.5), parent: "Root");
+bone("Torso", pos: (0, 0, 109.5), parent: "Spine");
+bone("Neck", pos: (0, 0, 140.5), parent: "Torso");
+bone("Head", pos: (0, 0, 146.5), parent: "Neck");
+bone("ScapulaR", pos: (0, -6.3, 137.8), parent: "Torso");
+bone("UpperArmR", pos: (0, -16.5, 135), parent: "ScapulaR");
+bone("ForearmR", pos: (0, -42.5, 135), parent: "UpperArmR");
+bone("HandR", pos: (0, -65.5, 135), parent: "ForearmR");
+bone("ScapulaL", pos: (0, 6.3, 137.8), parent: "Torso");
+bone("UpperArmL", pos: (0, 16.5, 135), parent: "ScapulaL");
+bone("ForearmL", pos: (0, 42.5, 135), parent: "UpperArmL");
+bone("HandL", pos: (0, 65.5, 135), parent: "ForearmL");
+bone("ThighR", pos: (0, -9.6, 85.5), parent: "Root");
+bone("ShinR", pos: (2.2, -10, 46.5), parent: "ThighR");
+bone("FootR", pos: (0.8, -10.5, 9.5), parent: "ShinR");
+bone("ToeR", pos: (12, -10.6, 2), parent: "FootR");
+bone("ThighL", pos: (0, 9.6, 85.5), parent: "Root");
+bone("ShinL", pos: (2.2, 10, 46.5), parent: "ThighL");
+bone("FootL", pos: (0.8, 10.5, 9.5), parent: "ShinL");
+bone("ToeL", pos: (12, 10.6, 2), parent: "FootL");
+socket("Fit", at: (0, 0, 0), axis: (0, 0, 1));
+let rooted = skin_weights(body, selection: select_verts(body, min: (-400, -400, -400), max: (400, 400, 400)), bones: "Root", weights: [1]);
+let w0 = soft_selection(rooted, selection: select_verts(rooted, min: (-400, -400, 94), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s0 = skin_weights(rooted, selection: w0, bones: "Spine", weights: [1]);
+let w1 = soft_selection(s0, selection: select_verts(s0, min: (-400, -400, 106), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s1 = skin_weights(s0, selection: w1, bones: "Torso", weights: [1]);
+let w2 = soft_selection(s1, selection: select_verts(s1, min: (-400, -11, 141.5), max: (400, 11, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s2 = skin_weights(s1, selection: w2, bones: "Neck", weights: [1]);
+let w3 = soft_selection(s2, selection: select_verts(s2, min: (-400, -400, 147), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s3 = skin_weights(s2, selection: w3, bones: "Head", weights: [1]);
+let w4 = soft_selection(s3, selection: select_verts(s3, min: (-400, -400, 110), max: (400, -19.5, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s4 = skin_weights(s3, selection: w4, bones: "UpperArmR", weights: [1]);
+let w5 = soft_selection(s4, selection: select_verts(s4, min: (-400, -400, 110), max: (400, -44.5, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s5 = skin_weights(s4, selection: w5, bones: "ForearmR", weights: [1]);
+let w6 = soft_selection(s5, selection: select_verts(s5, min: (-400, -400, 110), max: (400, -67, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s6 = skin_weights(s5, selection: w6, bones: "HandR", weights: [1]);
+let w7 = soft_selection(s6, selection: select_verts(s6, min: (-400, -400, -400), max: (400, -0.1, 80)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s6, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s7 = skin_weights(s6, selection: w7, bones: "ThighR", weights: [1]);
+let w8 = soft_selection(s7, selection: select_verts(s7, min: (-400, -400, -400), max: (400, -0.1, 44.5)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s7, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s8 = skin_weights(s7, selection: w8, bones: "ShinR", weights: [1]);
+let w9 = soft_selection(s8, selection: select_verts(s8, min: (-400, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s8, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s9 = skin_weights(s8, selection: w9, bones: "FootR", weights: [1]);
+let w10 = soft_selection(s9, selection: select_verts(s9, min: (11, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s9, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s10 = skin_weights(s9, selection: w10, bones: "ToeR", weights: [1]);
+let w11 = soft_selection(s10, selection: select_verts(s10, min: (-400, 19.5, 110), max: (400, 400, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s11 = skin_weights(s10, selection: w11, bones: "UpperArmL", weights: [1]);
+let w12 = soft_selection(s11, selection: select_verts(s11, min: (-400, 44.5, 110), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s12 = skin_weights(s11, selection: w12, bones: "ForearmL", weights: [1]);
+let w13 = soft_selection(s12, selection: select_verts(s12, min: (-400, 67, 110), max: (400, 400, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s13 = skin_weights(s12, selection: w13, bones: "HandL", weights: [1]);
+let w14 = soft_selection(s13, selection: select_verts(s13, min: (-400, 0.1, -400), max: (400, 400, 80)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s13, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s14 = skin_weights(s13, selection: w14, bones: "ThighL", weights: [1]);
+let w15 = soft_selection(s14, selection: select_verts(s14, min: (-400, 0.1, -400), max: (400, 400, 44.5)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s14, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s15 = skin_weights(s14, selection: w15, bones: "ShinL", weights: [1]);
+let w16 = soft_selection(s15, selection: select_verts(s15, min: (-400, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s15, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s16 = skin_weights(s15, selection: w16, bones: "FootL", weights: [1]);
+let w17 = soft_selection(s16, selection: select_verts(s16, min: (11, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s16, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s17 = skin_weights(s16, selection: w17, bones: "ToeL", weights: [1]);
+let cut = separate(body, selection: selection_intersection(selection_difference(select_faces(body, min: (-400, -400, 8.5), max: (400, 400, 400)), select_faces(body, min: (-400, -400, -400), max: (400, 400, 59.5))), select_faces(body, min: (-400, -400, -400), max: (400, 400, 80))));
+out.geo = transfer_weights(cut, source: s17, selection: select_verts(cut, min: (-400, -400, -400), max: (400, 400, 400)), max_distance: 2);
+#end
+
+#mesh TravFSkinKnees
+// Skin region: the part of the body a garment can hide (see skin_regions in the generator).
+budget(verts: 60000, indices: 240000);
+sim_box(min: (-45, -100, 0), max: (45, 100, 190));
+let body = part(TravelerFSkin);
+bone("Root", pos: (0, 0, 89));
+bone("Spine", pos: (0, 0, 96.5), parent: "Root");
+bone("Torso", pos: (0, 0, 109.5), parent: "Spine");
+bone("Neck", pos: (0, 0, 140.5), parent: "Torso");
+bone("Head", pos: (0, 0, 146.5), parent: "Neck");
+bone("ScapulaR", pos: (0, -6.3, 137.8), parent: "Torso");
+bone("UpperArmR", pos: (0, -16.5, 135), parent: "ScapulaR");
+bone("ForearmR", pos: (0, -42.5, 135), parent: "UpperArmR");
+bone("HandR", pos: (0, -65.5, 135), parent: "ForearmR");
+bone("ScapulaL", pos: (0, 6.3, 137.8), parent: "Torso");
+bone("UpperArmL", pos: (0, 16.5, 135), parent: "ScapulaL");
+bone("ForearmL", pos: (0, 42.5, 135), parent: "UpperArmL");
+bone("HandL", pos: (0, 65.5, 135), parent: "ForearmL");
+bone("ThighR", pos: (0, -9.6, 85.5), parent: "Root");
+bone("ShinR", pos: (2.2, -10, 46.5), parent: "ThighR");
+bone("FootR", pos: (0.8, -10.5, 9.5), parent: "ShinR");
+bone("ToeR", pos: (12, -10.6, 2), parent: "FootR");
+bone("ThighL", pos: (0, 9.6, 85.5), parent: "Root");
+bone("ShinL", pos: (2.2, 10, 46.5), parent: "ThighL");
+bone("FootL", pos: (0.8, 10.5, 9.5), parent: "ShinL");
+bone("ToeL", pos: (12, 10.6, 2), parent: "FootL");
+socket("Fit", at: (0, 0, 0), axis: (0, 0, 1));
+let rooted = skin_weights(body, selection: select_verts(body, min: (-400, -400, -400), max: (400, 400, 400)), bones: "Root", weights: [1]);
+let w0 = soft_selection(rooted, selection: select_verts(rooted, min: (-400, -400, 94), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s0 = skin_weights(rooted, selection: w0, bones: "Spine", weights: [1]);
+let w1 = soft_selection(s0, selection: select_verts(s0, min: (-400, -400, 106), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s1 = skin_weights(s0, selection: w1, bones: "Torso", weights: [1]);
+let w2 = soft_selection(s1, selection: select_verts(s1, min: (-400, -11, 141.5), max: (400, 11, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s2 = skin_weights(s1, selection: w2, bones: "Neck", weights: [1]);
+let w3 = soft_selection(s2, selection: select_verts(s2, min: (-400, -400, 147), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s3 = skin_weights(s2, selection: w3, bones: "Head", weights: [1]);
+let w4 = soft_selection(s3, selection: select_verts(s3, min: (-400, -400, 110), max: (400, -19.5, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s4 = skin_weights(s3, selection: w4, bones: "UpperArmR", weights: [1]);
+let w5 = soft_selection(s4, selection: select_verts(s4, min: (-400, -400, 110), max: (400, -44.5, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s5 = skin_weights(s4, selection: w5, bones: "ForearmR", weights: [1]);
+let w6 = soft_selection(s5, selection: select_verts(s5, min: (-400, -400, 110), max: (400, -67, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s6 = skin_weights(s5, selection: w6, bones: "HandR", weights: [1]);
+let w7 = soft_selection(s6, selection: select_verts(s6, min: (-400, -400, -400), max: (400, -0.1, 80)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s6, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s7 = skin_weights(s6, selection: w7, bones: "ThighR", weights: [1]);
+let w8 = soft_selection(s7, selection: select_verts(s7, min: (-400, -400, -400), max: (400, -0.1, 44.5)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s7, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s8 = skin_weights(s7, selection: w8, bones: "ShinR", weights: [1]);
+let w9 = soft_selection(s8, selection: select_verts(s8, min: (-400, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s8, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s9 = skin_weights(s8, selection: w9, bones: "FootR", weights: [1]);
+let w10 = soft_selection(s9, selection: select_verts(s9, min: (11, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s9, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s10 = skin_weights(s9, selection: w10, bones: "ToeR", weights: [1]);
+let w11 = soft_selection(s10, selection: select_verts(s10, min: (-400, 19.5, 110), max: (400, 400, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s11 = skin_weights(s10, selection: w11, bones: "UpperArmL", weights: [1]);
+let w12 = soft_selection(s11, selection: select_verts(s11, min: (-400, 44.5, 110), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s12 = skin_weights(s11, selection: w12, bones: "ForearmL", weights: [1]);
+let w13 = soft_selection(s12, selection: select_verts(s12, min: (-400, 67, 110), max: (400, 400, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s13 = skin_weights(s12, selection: w13, bones: "HandL", weights: [1]);
+let w14 = soft_selection(s13, selection: select_verts(s13, min: (-400, 0.1, -400), max: (400, 400, 80)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s13, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s14 = skin_weights(s13, selection: w14, bones: "ThighL", weights: [1]);
+let w15 = soft_selection(s14, selection: select_verts(s14, min: (-400, 0.1, -400), max: (400, 400, 44.5)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s14, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s15 = skin_weights(s14, selection: w15, bones: "ShinL", weights: [1]);
+let w16 = soft_selection(s15, selection: select_verts(s15, min: (-400, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s15, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s16 = skin_weights(s15, selection: w16, bones: "FootL", weights: [1]);
+let w17 = soft_selection(s16, selection: select_verts(s16, min: (11, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s16, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s17 = skin_weights(s16, selection: w17, bones: "ToeL", weights: [1]);
+let cut = separate(body, selection: selection_intersection(selection_difference(select_faces(body, min: (-400, -400, 8.5), max: (400, 400, 400)), select_faces(body, min: (-400, -400, -400), max: (400, 400, 44.5))), select_faces(body, min: (-400, -400, -400), max: (400, 400, 59.5))));
+out.geo = transfer_weights(cut, source: s17, selection: select_verts(cut, min: (-400, -400, -400), max: (400, 400, 400)), max_distance: 2);
+#end
+
+#mesh TravFSkinShins
+// Skin region: the part of the body a garment can hide (see skin_regions in the generator).
+budget(verts: 60000, indices: 240000);
+sim_box(min: (-45, -100, 0), max: (45, 100, 190));
+let body = part(TravelerFSkin);
+bone("Root", pos: (0, 0, 89));
+bone("Spine", pos: (0, 0, 96.5), parent: "Root");
+bone("Torso", pos: (0, 0, 109.5), parent: "Spine");
+bone("Neck", pos: (0, 0, 140.5), parent: "Torso");
+bone("Head", pos: (0, 0, 146.5), parent: "Neck");
+bone("ScapulaR", pos: (0, -6.3, 137.8), parent: "Torso");
+bone("UpperArmR", pos: (0, -16.5, 135), parent: "ScapulaR");
+bone("ForearmR", pos: (0, -42.5, 135), parent: "UpperArmR");
+bone("HandR", pos: (0, -65.5, 135), parent: "ForearmR");
+bone("ScapulaL", pos: (0, 6.3, 137.8), parent: "Torso");
+bone("UpperArmL", pos: (0, 16.5, 135), parent: "ScapulaL");
+bone("ForearmL", pos: (0, 42.5, 135), parent: "UpperArmL");
+bone("HandL", pos: (0, 65.5, 135), parent: "ForearmL");
+bone("ThighR", pos: (0, -9.6, 85.5), parent: "Root");
+bone("ShinR", pos: (2.2, -10, 46.5), parent: "ThighR");
+bone("FootR", pos: (0.8, -10.5, 9.5), parent: "ShinR");
+bone("ToeR", pos: (12, -10.6, 2), parent: "FootR");
+bone("ThighL", pos: (0, 9.6, 85.5), parent: "Root");
+bone("ShinL", pos: (2.2, 10, 46.5), parent: "ThighL");
+bone("FootL", pos: (0.8, 10.5, 9.5), parent: "ShinL");
+bone("ToeL", pos: (12, 10.6, 2), parent: "FootL");
+socket("Fit", at: (0, 0, 0), axis: (0, 0, 1));
+let rooted = skin_weights(body, selection: select_verts(body, min: (-400, -400, -400), max: (400, 400, 400)), bones: "Root", weights: [1]);
+let w0 = soft_selection(rooted, selection: select_verts(rooted, min: (-400, -400, 94), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s0 = skin_weights(rooted, selection: w0, bones: "Spine", weights: [1]);
+let w1 = soft_selection(s0, selection: select_verts(s0, min: (-400, -400, 106), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s1 = skin_weights(s0, selection: w1, bones: "Torso", weights: [1]);
+let w2 = soft_selection(s1, selection: select_verts(s1, min: (-400, -11, 141.5), max: (400, 11, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s2 = skin_weights(s1, selection: w2, bones: "Neck", weights: [1]);
+let w3 = soft_selection(s2, selection: select_verts(s2, min: (-400, -400, 147), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s3 = skin_weights(s2, selection: w3, bones: "Head", weights: [1]);
+let w4 = soft_selection(s3, selection: select_verts(s3, min: (-400, -400, 110), max: (400, -19.5, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s4 = skin_weights(s3, selection: w4, bones: "UpperArmR", weights: [1]);
+let w5 = soft_selection(s4, selection: select_verts(s4, min: (-400, -400, 110), max: (400, -44.5, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s5 = skin_weights(s4, selection: w5, bones: "ForearmR", weights: [1]);
+let w6 = soft_selection(s5, selection: select_verts(s5, min: (-400, -400, 110), max: (400, -67, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s6 = skin_weights(s5, selection: w6, bones: "HandR", weights: [1]);
+let w7 = soft_selection(s6, selection: select_verts(s6, min: (-400, -400, -400), max: (400, -0.1, 80)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s6, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s7 = skin_weights(s6, selection: w7, bones: "ThighR", weights: [1]);
+let w8 = soft_selection(s7, selection: select_verts(s7, min: (-400, -400, -400), max: (400, -0.1, 44.5)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s7, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s8 = skin_weights(s7, selection: w8, bones: "ShinR", weights: [1]);
+let w9 = soft_selection(s8, selection: select_verts(s8, min: (-400, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s8, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s9 = skin_weights(s8, selection: w9, bones: "FootR", weights: [1]);
+let w10 = soft_selection(s9, selection: select_verts(s9, min: (11, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s9, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s10 = skin_weights(s9, selection: w10, bones: "ToeR", weights: [1]);
+let w11 = soft_selection(s10, selection: select_verts(s10, min: (-400, 19.5, 110), max: (400, 400, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s11 = skin_weights(s10, selection: w11, bones: "UpperArmL", weights: [1]);
+let w12 = soft_selection(s11, selection: select_verts(s11, min: (-400, 44.5, 110), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s12 = skin_weights(s11, selection: w12, bones: "ForearmL", weights: [1]);
+let w13 = soft_selection(s12, selection: select_verts(s12, min: (-400, 67, 110), max: (400, 400, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s13 = skin_weights(s12, selection: w13, bones: "HandL", weights: [1]);
+let w14 = soft_selection(s13, selection: select_verts(s13, min: (-400, 0.1, -400), max: (400, 400, 80)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s13, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s14 = skin_weights(s13, selection: w14, bones: "ThighL", weights: [1]);
+let w15 = soft_selection(s14, selection: select_verts(s14, min: (-400, 0.1, -400), max: (400, 400, 44.5)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s14, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s15 = skin_weights(s14, selection: w15, bones: "ShinL", weights: [1]);
+let w16 = soft_selection(s15, selection: select_verts(s15, min: (-400, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s15, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s16 = skin_weights(s15, selection: w16, bones: "FootL", weights: [1]);
+let w17 = soft_selection(s16, selection: select_verts(s16, min: (11, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s16, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s17 = skin_weights(s16, selection: w17, bones: "ToeL", weights: [1]);
+let cut = separate(body, selection: selection_intersection(select_faces(body, min: (-400, -400, 8.5), max: (400, 400, 400)), select_faces(body, min: (-400, -400, -400), max: (400, 400, 44.5))));
+out.geo = transfer_weights(cut, source: s17, selection: select_verts(cut, min: (-400, -400, -400), max: (400, 400, 400)), max_distance: 2);
+#end
+
+#mesh TravFSkinFeet
+// Skin region: the part of the body a garment can hide (see skin_regions in the generator).
+budget(verts: 60000, indices: 240000);
+sim_box(min: (-45, -100, 0), max: (45, 100, 190));
+let body = part(TravelerFSkin);
+bone("Root", pos: (0, 0, 89));
+bone("Spine", pos: (0, 0, 96.5), parent: "Root");
+bone("Torso", pos: (0, 0, 109.5), parent: "Spine");
+bone("Neck", pos: (0, 0, 140.5), parent: "Torso");
+bone("Head", pos: (0, 0, 146.5), parent: "Neck");
+bone("ScapulaR", pos: (0, -6.3, 137.8), parent: "Torso");
+bone("UpperArmR", pos: (0, -16.5, 135), parent: "ScapulaR");
+bone("ForearmR", pos: (0, -42.5, 135), parent: "UpperArmR");
+bone("HandR", pos: (0, -65.5, 135), parent: "ForearmR");
+bone("ScapulaL", pos: (0, 6.3, 137.8), parent: "Torso");
+bone("UpperArmL", pos: (0, 16.5, 135), parent: "ScapulaL");
+bone("ForearmL", pos: (0, 42.5, 135), parent: "UpperArmL");
+bone("HandL", pos: (0, 65.5, 135), parent: "ForearmL");
+bone("ThighR", pos: (0, -9.6, 85.5), parent: "Root");
+bone("ShinR", pos: (2.2, -10, 46.5), parent: "ThighR");
+bone("FootR", pos: (0.8, -10.5, 9.5), parent: "ShinR");
+bone("ToeR", pos: (12, -10.6, 2), parent: "FootR");
+bone("ThighL", pos: (0, 9.6, 85.5), parent: "Root");
+bone("ShinL", pos: (2.2, 10, 46.5), parent: "ThighL");
+bone("FootL", pos: (0.8, 10.5, 9.5), parent: "ShinL");
+bone("ToeL", pos: (12, 10.6, 2), parent: "FootL");
+socket("Fit", at: (0, 0, 0), axis: (0, 0, 1));
+let rooted = skin_weights(body, selection: select_verts(body, min: (-400, -400, -400), max: (400, 400, 400)), bones: "Root", weights: [1]);
+let w0 = soft_selection(rooted, selection: select_verts(rooted, min: (-400, -400, 94), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s0 = skin_weights(rooted, selection: w0, bones: "Spine", weights: [1]);
+let w1 = soft_selection(s0, selection: select_verts(s0, min: (-400, -400, 106), max: (400, 400, 400)), radius: 8, falloff: "smooth", distance: "surface");
+let s1 = skin_weights(s0, selection: w1, bones: "Torso", weights: [1]);
+let w2 = soft_selection(s1, selection: select_verts(s1, min: (-400, -11, 141.5), max: (400, 11, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s2 = skin_weights(s1, selection: w2, bones: "Neck", weights: [1]);
+let w3 = soft_selection(s2, selection: select_verts(s2, min: (-400, -400, 147), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s3 = skin_weights(s2, selection: w3, bones: "Head", weights: [1]);
+let w4 = soft_selection(s3, selection: select_verts(s3, min: (-400, -400, 110), max: (400, -19.5, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s4 = skin_weights(s3, selection: w4, bones: "UpperArmR", weights: [1]);
+let w5 = soft_selection(s4, selection: select_verts(s4, min: (-400, -400, 110), max: (400, -44.5, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s5 = skin_weights(s4, selection: w5, bones: "ForearmR", weights: [1]);
+let w6 = soft_selection(s5, selection: select_verts(s5, min: (-400, -400, 110), max: (400, -67, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s6 = skin_weights(s5, selection: w6, bones: "HandR", weights: [1]);
+let w7 = soft_selection(s6, selection: select_verts(s6, min: (-400, -400, -400), max: (400, -0.1, 80)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s6, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s7 = skin_weights(s6, selection: w7, bones: "ThighR", weights: [1]);
+let w8 = soft_selection(s7, selection: select_verts(s7, min: (-400, -400, -400), max: (400, -0.1, 44.5)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s7, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s8 = skin_weights(s7, selection: w8, bones: "ShinR", weights: [1]);
+let w9 = soft_selection(s8, selection: select_verts(s8, min: (-400, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s8, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s9 = skin_weights(s8, selection: w9, bones: "FootR", weights: [1]);
+let w10 = soft_selection(s9, selection: select_verts(s9, min: (11, -400, -400), max: (400, -0.1, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s9, min: (-400, 0.1, -400), max: (400, 400, 400)));
+let s10 = skin_weights(s9, selection: w10, bones: "ToeR", weights: [1]);
+let w11 = soft_selection(s10, selection: select_verts(s10, min: (-400, 19.5, 110), max: (400, 400, 400)), radius: 7, falloff: "smooth", distance: "surface");
+let s11 = skin_weights(s10, selection: w11, bones: "UpperArmL", weights: [1]);
+let w12 = soft_selection(s11, selection: select_verts(s11, min: (-400, 44.5, 110), max: (400, 400, 400)), radius: 4, falloff: "smooth", distance: "surface");
+let s12 = skin_weights(s11, selection: w12, bones: "ForearmL", weights: [1]);
+let w13 = soft_selection(s12, selection: select_verts(s12, min: (-400, 67, 110), max: (400, 400, 400)), radius: 3, falloff: "smooth", distance: "surface");
+let s13 = skin_weights(s12, selection: w13, bones: "HandL", weights: [1]);
+let w14 = soft_selection(s13, selection: select_verts(s13, min: (-400, 0.1, -400), max: (400, 400, 80)), radius: 6, falloff: "smooth", distance: "surface", pins: select_verts(s13, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s14 = skin_weights(s13, selection: w14, bones: "ThighL", weights: [1]);
+let w15 = soft_selection(s14, selection: select_verts(s14, min: (-400, 0.1, -400), max: (400, 400, 44.5)), radius: 5, falloff: "smooth", distance: "surface", pins: select_verts(s14, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s15 = skin_weights(s14, selection: w15, bones: "ShinL", weights: [1]);
+let w16 = soft_selection(s15, selection: select_verts(s15, min: (-400, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s15, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s16 = skin_weights(s15, selection: w16, bones: "FootL", weights: [1]);
+let w17 = soft_selection(s16, selection: select_verts(s16, min: (11, 0.1, -400), max: (400, 400, 9)), radius: 3, falloff: "smooth", distance: "surface", pins: select_verts(s16, min: (-400, -400, -400), max: (400, -0.1, 400)));
+let s17 = skin_weights(s16, selection: w17, bones: "ToeL", weights: [1]);
+let cut = separate(body, selection: select_faces(body, min: (-400, -400, 8.5), max: (400, 400, 400), invert: "yes"));
+out.geo = transfer_weights(cut, source: s17, selection: select_verts(cut, min: (-400, -400, -400), max: (400, 400, 400)), max_distance: 2);
+#end
+#mesh TravelerAnchor
+// The player's own model: nothing to look at (the player is never drawn), only the socket everything worn
+// hangs on. The socket is pinned to a bone that no clip moves: a pinned socket carries its children with the
+// player's drawn position every frame, an un-pinned one with the simulated position, a tick behind, and the
+// whole figure then judders against the camera like a double image.
+sim_box(min: (-20, -20, 0), max: (20, 20, 180));
+bone("Anchor", pos: (0, 0, 0));
+socket("Fit", at: (0, 0, 0), axis: (0, 0, 1), bone: "Anchor");
+let dot = center(quad_box(size: (1, 1, 1), res: (2, 2, 2), material: "TravelerSkin"), at: (0, 0, 90));
+out.geo = skin_weights(dot, selection: select_verts(dot, min: (-400, -400, -400), max: (400, 400, 400)), bones: "Anchor", weights: [1]);
+#end
+
 #mesh TravelerStrawHat
 // A straw hat for the Hat socket (centre-to-centre: the brim sits 5 cm under the socket).
 var brim = [];
@@ -3428,6 +4348,35 @@ out.geo = flat_shade(merge(bag, flap, pocket, loft_quads(sections: roll, caps: "
 // WARDROBE (C): a side panel in the map's style. The player class owns the choices;
 // this class only shows them (one row per slot, the chosen row carries the diamond).
 // ============================================================
+// Everything the traveler is drawn with (skin, clothes, hat, pack) is spawned from these templates, so each
+// carries the Wearable class: per-player render visibility can only be set by an object on itself.
+// They are display objects (visual only, no physics body): the kind the engine means for attached parts.
+saved WearPiece {
+    display WearPieceObj : Wearable { model = "mesh.TravMHair" position = (0, 0, 0) }
+}
+saved WearHat {
+    display WearHatObj : Wearable { model = "mesh.TravelerStrawHat" position = (0, 0, 0) }
+}
+saved WearPack {
+    display WearPackObj : Wearable { model = "mesh.TravelerPack" position = (0, 0, 0) }
+}
+
+// Running backwards with the view locked to the mouse: the canon run played in reverse (the engine ships
+// no backpedal or strafe clips; sideways running is the same run with the hips turned, see TurnHips).
+#clip backpedal on canon
+from: run
+reverse
+#end
+
+#class Wearable
+func HideFrom(PlayerIndex: Number) {
+    SetRenderHiddenForPlayerIndex(PlayerIndex)
+}
+func ShowToAll() {
+    SetRenderVisibleToAllPlayers()
+}
+#end
+
 #class WardrobeHud
 func SetRow(I: Number, Name: Text, Value: Text, Selected: Bool) {
     FindChildUI("WdName" + I.ToText()).SetText(Name)
@@ -3500,14 +4449,24 @@ var MapOpen = false
 var PaintMode = 0
 var ThirdPerson = false
 var Female = false
-// --- wardrobe: one rigged object per slot, worn on the body's "Fit" socket and told to play the
-// body's clip in the same tick (PlayAll), so cloth and skin move as one. Style 0 = nothing worn.
+// --- wardrobe: one rigged object per slot, worn on the player's "Fit" socket and told to play the
+// same clip in the same tick (PlayAll), so cloth and skin move as one. Style 0 = nothing worn.
+// The skin is such objects too: attached objects trail the player by a tick, so a body drawn by the player
+// itself would run ahead of its clothes. The player's own mesh is never drawn. The skin comes in regions
+// so that whatever a garment covers is not drawn at all and cannot poke through it (ShowWorn).
 var WardrobeUi: Object
 var WardrobeOpen = false
 // the traveler turns this way (degrees, world yaw) while the wardrobe is open: three-quarters into this world's sun
 const WardrobeYaw = 115
 var Row = 0
 var ReturnYaw = 0
+var SkinCore: Object
+var SkinTorso: Object
+var SkinArms: Object
+var SkinThighs: Object
+var SkinKnees: Object
+var SkinShins: Object
+var SkinFeet: Object
 var Hair: Object
 var Top: Object
 var Over: Object
@@ -3531,10 +4490,39 @@ var OverTint = 4
 var LegsTint = 2
 var FeetTint = 10
 var Anim = 0
+// ticks the wanted locomotion state has differed from the playing one (a state must hold 3 ticks to switch)
+var AnimWait = 0
+// ticks left before WatchCamera looks again, after the script itself moved the camera
+var CamHold = 0
+// third-person zoom the wheel steps out to from first person, and the zoom below which it steps back in
+// (wheel notch = 20; third person bottoms out at 85)
+const StepOutZoom = 325
+const StepInZoom = 100
+var ReturnZoom = 0
+// degrees the hips are turned off the camera's heading (+ = left): what the way of travel asks for, and what
+// the pieces were last told
+var HipWant = 0
+var Hip = 0
+// false while a screen (map, wardrobe) holds the traveler still
+var Walking = true
+// the horizontal velocity asked of the engine (cm/s). It gains and sheds Push a tick: the engine itself
+// changes velocity in a single frame, so swapping A for D threw the traveler (and the view) from full
+// speed one way to full speed the other with nothing in between.
+var Drive = Vector(0, 0, 0)
+const RunSpeed = 900
+const Push = 150
 event OnSpawned {
-    SetDefaultPlayerControlsEnabled(true)
     SetCameraToFirstPerson()
     DisableAutoMoveAnimations()
+    SetModel(Ori.mesh.TravelerAnchor)
+    SetVisible(false)
+    SkinCore = NewPiece()
+    SkinTorso = NewPiece()
+    SkinArms = NewPiece()
+    SkinThighs = NewPiece()
+    SkinKnees = NewPiece()
+    SkinShins = NewPiece()
+    SkinFeet = NewPiece()
     Hair = NewPiece()
     Top = NewPiece()
     Over = NewPiece()
@@ -3542,10 +4530,8 @@ event OnSpawned {
     Feet = NewPiece()
     Under = NewPiece()
     Band = NewPiece()
-    Hat = SpawnObject(Ori.model.mesh.TravelerStrawHat, GetPosition())
-    Hat.SetCanCollide(false)
-    Pack = SpawnObject(Ori.model.mesh.TravelerPack, GetPosition())
-    Pack.SetCanCollide(false)
+    Hat = SpawnObject(SavedObject.WearHat, GetPosition())
+    Pack = SpawnObject(SavedObject.WearPack, GetPosition())
     ApplyLook()
     Hud = SpawnCanvas(SavedObject.QuestPanelUi, Origin())
     Hud.SetPlayerOwnerIndex(GetPlayerIndex())
@@ -3568,11 +4554,31 @@ event OnSpawned {
     SetScreenShader(Material.MonetPaint)
     Print("oil paint screen shader set")
     forever {
-        var Want = Locomotion()
-        if Want != Anim {
-            Anim = Want
-            PlayLook()
+        // the mouse alone turns the traveler: the keys only move it (the engine's default controls would also
+        // turn the body toward the travel, against the mouse-locked facing)
+        var Aim = Vector(0, 0, 0)
+        if Walking { Aim = GetMoveVectorCamera() * RunSpeed }
+        var Gap = Aim - Drive
+        var GapLen = Gap.Length()
+        if GapLen <= Push {
+            Drive = Aim
+        } else {
+            Drive = Drive + Gap * (Push / GapLen)
         }
+        MoveInDirectionContinuously(Drive, Drive.Length())
+        WatchCamera()
+        var Want = Locomotion()
+        if Want == Anim {
+            AnimWait = 0
+        } else {
+            AnimWait = AnimWait + 1
+            if AnimWait >= 3 {
+                Anim = Want
+                AnimWait = 0
+                PlayLook()
+            }
+        }
+        TurnHips()
         if IsKeyPressedByThisPlayer(Key.P) and MapOpen == false {
             PaintMode = PaintMode + 1
             if PaintMode > 2 { PaintMode = 0 }
@@ -3580,37 +4586,123 @@ event OnSpawned {
         }
     }
 }
+event ActionDownByThisPlayer[Jump] {
+    if Walking and IsOnGround() { Jump(1000) }
+}
 func NewPiece() -> Object {
-    var P = SpawnObject(Ori.model.mesh.TravMHair, GetPosition())
-    P.SetCanCollide(false)
+    var P = SpawnObject(SavedObject.WearPiece, GetPosition())
+    P.DisableAutoMoveAnimations()
     return P
 }
-// 1 idle, 2 run, 3 in the air, 4 backwards, 5 strafe right, 6 strafe left
+// 1 idle, 2 run, 3 in the air, 4 backwards. The body always faces where the mouse looks; one run clip serves
+// every direction and the hips turn to the way of travel (HipWant), so changing direction never restarts the
+// stride. Going backwards the legs face away from the travel and the run plays in reverse. The two speeds
+// keep a traveler pushing on a wall from flickering between idle and running.
 func Locomotion() -> Number {
     if IsOnGround() == false { return 3 }
     var V = GetVelocity()
+    var Speed2 = V.X * V.X + V.Y * V.Y
+    if Anim == 1 or Anim == 0 or Anim == 3 {
+        if Speed2 < 3600 {
+            HipWant = 0
+            return 1
+        }
+    } else if Speed2 < 900 {
+        HipWant = 0
+        return 1
+    }
     var F = GetFacingDirection()
     var Fwd = V.Dot(F)
     var Side = V.Dot(F.Cross(Vector(0, 0, 1)))
-    if Fwd * Fwd + Side * Side < 2500 { return 1 }
-    if Fwd * Fwd >= Side * Side {
-        if Fwd > 0 { return 2 }
+    // backwards once the travel points well behind sideways; a traveler already backing up stays so longer
+    var Edge = 0.15
+    if Anim == 4 { Edge = 0.03 }
+    if Fwd < 0 and Fwd * Fwd > Edge * Speed2 {
+        HipWant = Side.Atan2Degree(0 - Fwd)
         return 4
     }
-    if Side > 0 { return 5 }
-    return 6
+    HipWant = (0 - Side).Atan2Degree(Fwd)
+    if HipWant > 90 { HipWant = 90 }
+    if HipWant < -90 { HipWant = -90 }
+    return 2
 }
 func PlayLook() {
     if Anim == 1 { PlayAll(Ori.anim.canon.idle) }
     if Anim == 2 { PlayAll(Ori.anim.canon.run) }
     if Anim == 3 { PlayAll(Ori.anim.canon.jumpHover) }
-    if Anim == 4 { PlayAll(Ori.anim.canon.runBack) }
-    if Anim == 5 { PlayAll(Ori.anim.canon.runRight) }
-    if Anim == 6 { PlayAll(Ori.anim.canon.runLeft) }
+    if Anim == 4 { PlayAll(Ori.anim.canon.backpedal) }
 }
-// Every clip the traveler plays goes through here: the body and each worn piece start it together.
+// The hip turn is a bone layer over whatever clip plays: the root swings to HipWant and the spine twists
+// back by the same amount, so chest and head stay on the camera's heading. The engine eases every change
+// (0.18 s), which is what keeps a change of direction from snapping.
+func TurnHips() {
+    var D = HipWant - Hip
+    if D > 2 or D < -2 {
+        Hip = HipWant
+        TwistAll()
+    }
+}
+func Twist(P: Object) {
+    // same sense as the facing: a positive yaw turns the hips to the left
+    P.SetBoneRotationMix("Root", Vector(0, 0, Hip), 1, 0.18, 1)
+    P.SetBoneRotationMix("Spine", Vector(0, 0, 0 - Hip * 0.3), 1, 0.18, 1)
+    P.SetBoneRotationMix("Torso", Vector(0, 0, 0 - Hip * 0.35), 1, 0.18, 1)
+    P.SetBoneRotationMix("Neck", Vector(0, 0, 0 - Hip * 0.35), 1, 0.18, 1)
+}
+func TwistAll() {
+    Twist(SkinCore)
+    Twist(SkinTorso)
+    Twist(SkinArms)
+    Twist(SkinThighs)
+    Twist(SkinKnees)
+    Twist(SkinShins)
+    Twist(SkinFeet)
+    Twist(Hair)
+    Twist(Top)
+    Twist(Over)
+    Twist(Legs)
+    Twist(Feet)
+    Twist(Under)
+    Twist(Band)
+}
+// The first wheel notch out of first person becomes real third person (framed behind the traveler, body kept
+// on the camera's yaw by SetOrientingWithCameraYaw); zooming all the way in goes back to first person.
+func WatchCamera() {
+    if CamHold > 0 {
+        CamHold = CamHold - 1
+    } else if WardrobeOpen == false and MapOpen == false {
+        var Z = GetCameraZoom()
+        if ThirdPerson {
+            if Z < StepInZoom { GoFirstPerson() }
+        } else if Z > 0 {
+            GoThirdPerson(StepOutZoom)
+        }
+    }
+}
+func GoThirdPerson(Zoom: Number) {
+    ThirdPerson = true
+    SetCameraToThirdPerson(true)
+    SetOrientingWithCameraYaw(true)
+    SetCameraZoom(Zoom)
+    CamHold = 10
+    ShowWorn()
+}
+func GoFirstPerson() {
+    ThirdPerson = false
+    SetCameraToFirstPerson()
+    SetCameraZoom(0)
+    CamHold = 10
+    ShowWorn()
+}
+// Every clip the traveler plays goes through here: the skin and each worn piece start it together.
 func PlayAll(Clip: Object) {
-    PlayAnimationOnRepeat(Clip)
+    SkinCore.PlayAnimationOnRepeat(Clip)
+    SkinTorso.PlayAnimationOnRepeat(Clip)
+    SkinArms.PlayAnimationOnRepeat(Clip)
+    SkinThighs.PlayAnimationOnRepeat(Clip)
+    SkinKnees.PlayAnimationOnRepeat(Clip)
+    SkinShins.PlayAnimationOnRepeat(Clip)
+    SkinFeet.PlayAnimationOnRepeat(Clip)
     Hair.PlayAnimationOnRepeat(Clip)
     Top.PlayAnimationOnRepeat(Clip)
     Over.PlayAnimationOnRepeat(Clip)
@@ -3626,9 +4718,23 @@ func Dress(Piece: Object, Model: Object, Worn: Bool, Tint: Vector) {
         Piece.SetColor(Tint)
     }
 }
+func DressSkin(Core: Object, Torso: Object, Arms: Object, Thighs: Object, Shins: Object, Feet: Object) {
+    Dress(SkinCore, Core, true, Vector(1, 1, 1))
+    Dress(SkinTorso, Torso, true, Vector(1, 1, 1))
+    Dress(SkinArms, Arms, true, Vector(1, 1, 1))
+    Dress(SkinThighs, Thighs, true, Vector(1, 1, 1))
+    Dress(SkinShins, Shins, true, Vector(1, 1, 1))
+    Dress(SkinFeet, Feet, true, Vector(1, 1, 1))
+}
 // Puts the chosen body, pieces and colours on the traveler
 func ApplyLook() {
-    if Female { SetModel(Ori.mesh.TravelerBodyF) } else { SetModel(Ori.mesh.TravelerBody) }
+    if Female {
+        DressSkin(Ori.mesh.TravFSkinCore, Ori.mesh.TravFSkinTorso, Ori.mesh.TravFSkinArms, Ori.mesh.TravFSkinThighs, Ori.mesh.TravFSkinShins, Ori.mesh.TravFSkinFeet)
+        // her thigh is cut once more at the skirt hem (he has no skirt, his thigh region runs down to the knee)
+        Dress(SkinKnees, Ori.mesh.TravFSkinKnees, true, Vector(1, 1, 1))
+    } else {
+        DressSkin(Ori.mesh.TravMSkinCore, Ori.mesh.TravMSkinTorso, Ori.mesh.TravMSkinArms, Ori.mesh.TravMSkinThighs, Ori.mesh.TravMSkinShins, Ori.mesh.TravMSkinFeet)
+    }
     Dress(Hair, HairModel(), HairStyle > 0, HairColor(HairTint))
     Dress(Top, TopModel(), TopStyle > 0, ClothColor(TopTint))
     Dress(Over, OverModel(), OverStyle > 0, ClothColor(OverTint))
@@ -3636,26 +4742,57 @@ func ApplyLook() {
     Dress(Feet, FeetModel(), FeetStyle > 0, ClothColor(FeetTint))
     Dress(Under, UnderModel(), true, Vector(1, 1, 1))
     Dress(Band, Ori.mesh.TravFBand, Female, Vector(1, 1, 1))
-    if HatStyle > 0 { Hat.AttachToAnchor(Self, "Hat") }
-    if PackStyle > 0 { Pack.AttachToAnchor(Self, "Back") }
+    if HatStyle > 0 { Hat.AttachToAnchor(SkinCore, "Hat") }
+    if PackStyle > 0 { Pack.AttachToAnchor(SkinCore, "Back") }
     ShowWorn()
     PlayLook()
+    TwistAll()
 }
-// First person hides the player's own body but not the objects riding on it, and they would sit
-// right in the camera - so the worn pieces show only in third person and in the wardrobe.
-// (SetVisible is shared state: other players see a first-person traveler without the pieces.)
+// SetVisible says what is worn. In first person the skin and pieces would sit right in the camera, so
+// there they are hidden from this player only (ShowTo); everyone else still sees the traveler dressed.
 func ShowWorn() {
-    var Seen = ThirdPerson or WardrobeOpen
-    Hair.SetVisible(Seen and HairStyle > 0)
-    Top.SetVisible(Seen and TopStyle > 0)
-    Over.SetVisible(Seen and OverStyle > 0)
-    Legs.SetVisible(Seen and LegsStyle > 0)
-    Feet.SetVisible(Seen and FeetStyle > 0)
-    Hat.SetVisible(Seen and HatStyle > 0)
-    Pack.SetVisible(Seen and PackStyle > 0)
+    Hair.SetVisible(HairStyle > 0)
+    Top.SetVisible(TopStyle > 0)
+    Over.SetVisible(OverStyle > 0)
+    Legs.SetVisible(LegsStyle > 0)
+    Feet.SetVisible(FeetStyle > 0)
+    Hat.SetVisible(HatStyle > 0)
+    Pack.SetVisible(PackStyle > 0)
     // trousers and breeches sit on the same surface as the underwear, a shirt on the bandeau's: hide what is covered
-    Under.SetVisible(Seen and (LegsStyle == 0 or LegsStyle == 3))
-    Band.SetVisible(Seen and Female and TopStyle == 0)
+    Under.SetVisible(LegsStyle == 0 or LegsStyle == 3)
+    Band.SetVisible(Female and TopStyle == 0)
+    // skin under a garment is not drawn: a shirt covers torso and arms, a tee the torso, trousers the whole
+    // leg, breeches thigh and knee, the skirt the thigh above its hem, boots and shoes the foot
+    // (the pelvis is never drawn: underwear or trousers cover it)
+    SkinTorso.SetVisible(TopStyle == 0)
+    SkinArms.SetVisible(TopStyle != 1)
+    SkinThighs.SetVisible(LegsStyle == 0)
+    SkinKnees.SetVisible(Female and (LegsStyle == 0 or LegsStyle == 3))
+    SkinShins.SetVisible(LegsStyle != 1)
+    SkinFeet.SetVisible(FeetStyle == 0)
+    ShowTo(SkinCore)
+    ShowTo(SkinTorso)
+    ShowTo(SkinArms)
+    ShowTo(SkinThighs)
+    ShowTo(SkinKnees)
+    ShowTo(SkinShins)
+    ShowTo(SkinFeet)
+    ShowTo(Hair)
+    ShowTo(Top)
+    ShowTo(Over)
+    ShowTo(Legs)
+    ShowTo(Feet)
+    ShowTo(Hat)
+    ShowTo(Pack)
+    ShowTo(Under)
+    ShowTo(Band)
+}
+func ShowTo(Piece: Object) {
+    if ThirdPerson or WardrobeOpen {
+        (Piece as Wearable).ShowToAll()
+    } else {
+        (Piece as Wearable).HideFrom(GetPlayerIndex())
+    }
 }
 func HairModel() -> Object {
     if Female { return Ori.mesh.TravFHair }
@@ -3830,8 +4967,9 @@ func OpenWardrobe() {
     WardrobeOpen = true
     ShowWorn()
     (Hud as QuestHud).Hide()
-    SetDefaultPlayerControlsEnabled(false)
+    Walking = false
     SetCrosshairVisible(false)
+    ReturnZoom = GetCameraZoom()
     SetCameraToThirdPerson(false)
     var F = GetFacingDirection()
     ReturnYaw = F.Y.Atan2Degree(F.X)
@@ -3846,12 +4984,18 @@ func CloseWardrobe() {
     WardrobeOpen = false
     ShowWorn()
     (WardrobeUi as WardrobeHud).Hide()
-    SetCameraZoom(525)
     SetCameraPivotOffset(Vector(0, -39, 87))
-    if ThirdPerson { SetCameraToThirdPerson(true) } else { SetCameraToFirstPerson() }
+    if ThirdPerson {
+        SetCameraToThirdPerson(true)
+        SetOrientingWithCameraYaw(true)
+    } else {
+        SetCameraToFirstPerson()
+    }
+    SetCameraZoom(ReturnZoom)
+    CamHold = 10
     SetRotation(0, 0, ReturnYaw)
     SetCameraRotation(ReturnYaw)
-    SetDefaultPlayerControlsEnabled(true)
+    Walking = true
     SetCrosshairVisible(true)
     (Hud as QuestHud).Pulse()
 }
@@ -3891,17 +5035,10 @@ event KeyboardDownByThisPlayer[Q] {
 event KeyboardDownByThisPlayer[E] {
     if WardrobeOpen { StepColour(1) }
 }
-// V switches between first person and a third-person view of the traveler
+// V switches between first person and a third-person view of the traveler (the mouse wheel does too)
 event KeyboardDownByThisPlayer[V] {
     if MapOpen == false and WardrobeOpen == false {
-        if ThirdPerson {
-            ThirdPerson = false
-            SetCameraToFirstPerson()
-        } else {
-            ThirdPerson = true
-            SetCameraToThirdPerson(true)
-        }
-        ShowWorn()
+        if ThirdPerson { GoFirstPerson() } else { GoThirdPerson(525) }
     }
 }
 // M opens the map (the quest moves into its side panel); M again closes it and the
@@ -3911,7 +5048,7 @@ event KeyboardDownByThisPlayer[M] {
         MapOpen = false
         (MapUi as MapHud).Close()
         SetCursorUiMode(false)
-        SetDefaultPlayerControlsEnabled(true)
+        Walking = true
         (Hud as QuestHud).Pulse()
         SetCrosshairVisible(true)
         ApplyPaintMode()
@@ -3921,7 +5058,7 @@ event KeyboardDownByThisPlayer[M] {
         MapOpen = true
         (Hud as QuestHud).Hide()
         (MapUi as MapHud).Open()
-        SetDefaultPlayerControlsEnabled(false)
+        Walking = false
         SetCursorUiMode(true)
         SetCrosshairVisible(false)
         SetScreenShader(Material.MapBackdrop)
